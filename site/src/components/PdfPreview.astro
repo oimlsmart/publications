@@ -1,95 +1,16 @@
 ---
 import { BASE_PATH } from '../data/publications'
+import PdfViewer from './PdfViewer.vue'
 
 interface Props {
-  /** Path under pdfs/, e.g. 'r60_2021/r060-e21.pdf'. */
   pdfPath: string
 }
-
 const { pdfPath } = Astro.props
 const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
 ---
 
-<div class="border border-rule rounded-sm bg-paper-soft dark:bg-paper overflow-hidden">
-  <div class="flex items-center gap-2 px-3 py-2 border-b border-rule bg-paper dark:bg-paper-deep text-sm">
-    <button id="pdf-prev" class="px-2 py-1 border border-rule rounded-sm hover:bg-paper-soft dark:hover:bg-paper">←</button>
-    <span id="pdf-page" class="font-mono text-xs">1 / —</span>
-    <button id="pdf-next" class="px-2 py-1 border border-rule rounded-sm hover:bg-paper-soft dark:hover:bg-paper">→</button>
-    <span class="flex-1"></span>
-    <a href={`${BASE_PATH}/pdfs/${pdfPath}`} download class="text-xs font-mono text-accent hover:underline">⬇ Download PDF</a>
-  </div>
-  <div class="overflow-auto bg-gray-200 dark:bg-gray-900" style="height: 75vh">
-    <canvas id="pdf-canvas" class="mx-auto block shadow-lg" data-pdf-url={`${BASE_PATH}/pdfs/${pdfPath}`}></canvas>
-  </div>
-  <p id="pdf-loading" class="px-3 py-2 text-sm text-ink-soft font-mono">Loading PDF…</p>
-  <p id="pdf-error" class="hidden px-3 py-2 text-sm text-red-700 dark:text-red-300 font-mono"></p>
-</div>
-
+<!-- Load pdf.js v2.16.105 UMD build as a classic script -->
 <script is:inline src={`${BASE_PATH}/pdfjs/pdf.min.js`}></script>
 
-<script is:inline>
-  (function () {
-    var canvas = document.getElementById('pdf-canvas');
-    if (!canvas) return;
-    var url = canvas.dataset.pdfUrl;
-    var prevBtn = document.getElementById('pdf-prev');
-    var nextBtn = document.getElementById('pdf-next');
-    var pageLabel = document.getElementById('pdf-page');
-    var loading = document.getElementById('pdf-loading');
-    var errorEl = document.getElementById('pdf-error');
-
-    // Set worker source to the locally hosted file
-    pdfjsLib.GlobalWorkerOptions.workerSrc = document.querySelector('script[src*="pdf.min.js"]').src.replace('pdf.min.js', 'pdf.worker.min.js');
-
-    var docPromise = null;
-    var currentPage = 1;
-
-    function load() {
-      docPromise = pdfjsLib.getDocument(url).promise;
-      docPromise.then(function (doc) {
-        render(currentPage).then(function () {
-          loading.classList.add('hidden');
-        });
-      }).catch(function (e) {
-        loading.classList.add('hidden');
-        errorEl.classList.remove('hidden');
-        errorEl.textContent = 'Failed to load PDF: ' + (e && e.message ? e.message : e);
-      });
-    }
-
-    function render(pageNum) {
-      return docPromise.then(function (doc) {
-        if (pageNum < 1) pageNum = 1;
-        if (pageNum > doc.numPages) pageNum = doc.numPages;
-        currentPage = pageNum;
-        pageLabel.textContent = pageNum + ' / ' + doc.numPages;
-        return doc.getPage(pageNum).then(function (page) {
-          var container = canvas.parentElement;
-          var desiredWidth = container.clientWidth - 24;
-          var viewport0 = page.getViewport({ scale: 1 });
-          var scale = Math.min(2, Math.max(0.3, desiredWidth / viewport0.width));
-          var viewport = page.getViewport({ scale: scale });
-          var ctx = canvas.getContext('2d');
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          canvas.style.width = viewport.width + 'px';
-          canvas.style.height = viewport.height + 'px';
-          return page.render({ canvasContext: ctx, viewport: viewport });
-        });
-      });
-    }
-
-    prevBtn.addEventListener('click', function () { render(currentPage - 1); });
-    nextBtn.addEventListener('click', function () { render(currentPage + 1); });
-
-    // Wait for pdf.js to be loaded (script tag above)
-    function waitForPdfJs() {
-      if (typeof pdfjsLib !== 'undefined') {
-        load();
-      } else {
-        setTimeout(waitForPdfJs, 50);
-      }
-    }
-    waitForPdfJs();
-  })();
-</script>
+<!-- Vue island handles all viewer interaction -->
+<PdfViewer client:visible pdfUrl={pdfUrl} basePath={BASE_PATH} />

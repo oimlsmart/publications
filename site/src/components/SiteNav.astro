@@ -1,6 +1,8 @@
 ---
-import { BROWSE_DROPDOWN, NAV_STANDALONE, isLinkActive } from '../data/nav-config'
+import { BROWSE_DROPDOWN } from '../data/nav-config'
 import { BASE_PATH } from '../data/publications'
+import NavMenu from './NavMenu.vue'
+import MobileNav from './MobileNav.vue'
 
 interface Props {
   currentPath?: string
@@ -20,162 +22,10 @@ const root = BASE_PATH
       </span>
     </a>
 
-    <!-- Desktop nav -->
-    <nav class="hidden md:flex items-center gap-5">
-      <div class="nav-dropdown relative">
-        <button
-          id="nav-browse-toggle"
-          class="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-accent transition-colors whitespace-nowrap"
-          aria-haspopup="true"
-          aria-expanded="false"
-        >
-          <span>Browse</span>
-          <span class="text-[0.625rem] text-ink-muted">▾</span>
-        </button>
-        <div
-          id="nav-browse-menu"
-          class="absolute top-full mt-2 left-0 min-w-[280px] bg-paper-soft dark:bg-paper border border-rule rounded-lg p-1.5 shadow-lg flex-col gap-0.5 z-[200] transition-all duration-150 hidden opacity-0 invisible"
-        >
-          {BROWSE_DROPDOWN.links.map(link => (
-            <a
-              href={link.href}
-              class="flex items-start gap-2 px-3 py-2 text-sm text-ink-soft hover:bg-paper-raised dark:hover:bg-paper-deep hover:text-accent rounded transition-colors no-underline"
-            >
-              <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-                <span>{link.label}</span>
-                {link.desc && <span class="text-xs text-ink-muted">{link.desc}</span>}
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
+    <!-- Desktop nav (Vue island) -->
+    <NavMenu client:load currentPath={currentPath} />
 
-      {NAV_STANDALONE.filter(l => l.label !== 'Browse').map(item => (
-        <a
-          href={item.href}
-          class={`text-sm font-medium hover:text-accent transition-colors whitespace-nowrap ${isLinkActive(item.matchPrefix, currentPath) ? 'text-accent font-semibold' : 'text-ink-soft'} ${item.external ? 'inline-flex items-center gap-1' : ''}`}
-        >
-          <span>{item.label}</span>
-          {item.external && (
-            <svg class="w-3 h-3 text-ink-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 17L17 7M17 7H7M17 7V17" />
-            </svg>
-          )}
-        </a>
-      ))}
-
-      <button
-        id="theme-toggle"
-        class="text-sm font-medium text-ink-soft hover:text-accent transition-colors p-1.5 rounded hover:bg-paper-raised dark:hover:bg-paper-deep"
-        aria-label="Toggle dark mode"
-      >
-        <svg class="w-4 h-4 theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5" />
-          <line x1="12" y1="1" x2="12" y2="3" />
-          <line x1="12" y1="21" x2="12" y2="23" />
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-          <line x1="1" y1="12" x2="3" y2="12" />
-          <line x1="21" y1="12" x2="23" y2="12" />
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-        </svg>
-        <svg class="w-4 h-4 theme-icon-dark hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      </button>
-    </nav>
-
-    <!-- Mobile nav trigger -->
-    <button
-      id="mobile-nav-toggle"
-      class="md:hidden flex flex-col items-center justify-center gap-[5px] w-10 h-10 rounded-lg border border-rule cursor-pointer shrink-0 transition-colors hover:border-accent bg-transparent"
-      aria-label="Open menu"
-    >
-      <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200"></span>
-      <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200"></span>
-      <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200"></span>
-    </button>
-  </div>
-
-  <!-- Mobile nav overlay -->
-  <div id="mobile-nav-overlay" class="fixed inset-0 z-[300] bg-paper dark:bg-paper-deep flex flex-col md:hidden hidden">
-    <div class="flex items-center justify-between h-14 px-6 border-b border-rule shrink-0">
-      <a href={`${root}/`} class="flex items-center gap-2 no-underline text-ink">
-        <img src={`${root}/oiml-logo-icon-light.svg`} alt="" class="logo-light h-7 w-auto shrink-0" />
-        <img src={`${root}/oiml-logo-icon-dark.svg`} alt="" class="logo-dark h-7 w-auto shrink-0" />
-        <span class="font-serif text-base font-semibold tracking-tight">OIML Publications</span>
-      </a>
-      <button
-        id="mobile-nav-close"
-        class="w-10 h-10 rounded-lg border border-rule flex items-center justify-center"
-        aria-label="Close menu"
-      >
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-    </div>
-    <nav class="flex-1 overflow-y-auto px-6 py-4 space-y-1">
-      <a href={`${root}/browse/`} class="block py-3 px-3 text-base font-medium text-ink hover:bg-paper-raised dark:hover:bg-paper rounded">Browse all</a>
-      {BROWSE_DROPDOWN.links.filter(l => l.label !== 'All publications').map(link => (
-        <a href={link.href} class="block py-3 px-3 text-base text-ink-soft hover:bg-paper-raised dark:hover:bg-paper rounded">{link.label}</a>
-      ))}
-      <hr class="border-rule my-3" />
-      <a href={`${root}/search/`} class="block py-3 px-3 text-base text-ink-soft hover:bg-paper-raised dark:hover:bg-paper rounded">Search</a>
-      <a href="https://www.oimlsmart.org/" class="block py-3 px-3 text-base text-ink-soft hover:bg-paper-raised dark:hover:bg-paper rounded">OIML SMART ↗</a>
-      <a href="https://github.com/oimlsmart/publications" class="block py-3 px-3 text-base text-ink-soft hover:bg-paper-raised dark:hover:bg-paper rounded">GitHub ↗</a>
-    </nav>
+    <!-- Mobile nav (Vue island) -->
+    <MobileNav client:load basePath={root} />
   </div>
 </header>
-
-<script is:inline>
-  // Theme toggle
-  function applyTheme(t) {
-    document.documentElement.classList.toggle('dark', t === 'dark')
-    const lightIcon = document.querySelector('.theme-icon-light')
-    const darkIcon = document.querySelector('.theme-icon-dark')
-    if (lightIcon && darkIcon) {
-      lightIcon.classList.toggle('hidden', t === 'dark')
-      darkIcon.classList.toggle('hidden', t !== 'dark')
-    }
-  }
-  const savedTheme = localStorage.getItem('oiml-theme') ||
-    (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-  applyTheme(savedTheme)
-  document.getElementById('theme-toggle')?.addEventListener('click', () => {
-    const isDark = !document.documentElement.classList.contains('dark')
-    applyTheme(isDark ? 'dark' : 'light')
-    localStorage.setItem('oiml-theme', isDark ? 'dark' : 'light')
-  })
-
-  // Browse dropdown
-  const browseToggle = document.getElementById('nav-browse-toggle')
-  const browseMenu = document.getElementById('nav-browse-menu')
-  let browseTimer = null
-  if (browseToggle && browseMenu) {
-    const open = () => { clearTimeout(browseTimer); browseMenu.classList.remove('hidden', 'opacity-0', 'invisible'); browseMenu.classList.add('flex'); browseToggle.setAttribute('aria-expanded', 'true') }
-    const close = () => { browseMenu.classList.add('hidden', 'opacity-0', 'invisible'); browseMenu.classList.remove('flex'); browseToggle.setAttribute('aria-expanded', 'false') }
-    browseToggle.addEventListener('click', () => browseMenu.classList.contains('hidden') ? open() : close())
-    browseToggle.parentElement.addEventListener('mouseenter', open)
-    browseToggle.parentElement.addEventListener('mouseleave', () => { browseTimer = setTimeout(close, 150) })
-  }
-
-  // Mobile nav
-  const mobileToggle = document.getElementById('mobile-nav-toggle')
-  const mobileClose = document.getElementById('mobile-nav-close')
-  const mobileOverlay = document.getElementById('mobile-nav-overlay')
-  if (mobileToggle && mobileOverlay) {
-    mobileToggle.addEventListener('click', () => {
-      mobileOverlay.classList.remove('hidden')
-      document.body.style.overflow = 'hidden'
-    })
-  }
-  if (mobileClose && mobileOverlay) {
-    mobileClose.addEventListener('click', () => {
-      mobileOverlay.classList.add('hidden')
-      document.body.style.overflow = ''
-    })
-  }
-</script>

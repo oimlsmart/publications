@@ -1,15 +1,13 @@
 import { defineConfig } from 'astro/config'
 import sitemap from '@astrojs/sitemap'
+import vue from '@astrojs/vue'
 import tailwindcss from '@tailwindcss/vite'
 
-// Site is published at https://oimlsmart.github.io/publications/
-// (GitHub Pages project-page path). Adjust `base` if moved to a custom
-// domain.
 export default defineConfig({
   site: 'https://oimlsmart.github.io',
   base: '/publications',
   output: 'static',
-  integrations: [sitemap()],
+  integrations: [sitemap(), vue()],
   vite: {
     plugins: [tailwindcss()],
   },

@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro'
 import { BASE_PATH } from '../data/publications'
+import SearchBox from '../components/SearchBox.vue'
 ---
 
 <Base title="Search" currentPath="/search">
@@ -23,60 +24,7 @@ import { BASE_PATH } from '../data/publications'
 
   <section class="px-8 py-8">
     <div class="max-w-4xl mx-auto">
-      <link rel="stylesheet" href={`${BASE_PATH}/pagefind/pagefind-ui.css`} />
-      <div id="search" data-base-path={BASE_PATH}></div>
+      <SearchBox client:load basePath={BASE_PATH} />
     </div>
   </section>
-
-  <script is:inline>
-    (function () {
-      var el = document.getElementById('search');
-      if (!el) return;
-      var basePath = el.dataset.basePath || '';
-      var initialQuery = new URLSearchParams(window.location.search).get('q') || '';
-
-      // Pagefind UI is an IIFE that attaches to window.PagefindUI —
-      // load it via a script tag, not import().
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = basePath + '/pagefind/pagefind-ui.css';
-      document.head.appendChild(link);
-
-      var script = document.createElement('script');
-      script.src = basePath + '/pagefind/pagefind-ui.js';
-      script.onload = function () {
-        if (!window.PagefindUI) {
-          el.innerHTML = '<p class="text-sm text-red-700 font-mono p-4">PagefindUI not found after script load.</p>';
-          return;
-        }
-        new window.PagefindUI({
-          element: '#search',
-          showSubResults: true,
-          showImages: false,
-          translations: {
-            placeholder: 'Search publications…',
-            zero_results: 'No matching publications found.',
-          },
-        });
-
-        if (initialQuery) {
-          var attempts = 0;
-          (function poll() {
-            if (++attempts > 50) return;
-            var input = document.querySelector('#search input[type="search"]');
-            if (input) {
-              input.value = initialQuery;
-              input.dispatchEvent(new Event('input', { bubbles: true }));
-              return;
-            }
-            setTimeout(poll, 20);
-          })();
-        }
-      };
-      script.onerror = function () {
-        el.innerHTML = '<p class="text-sm text-red-700 font-mono p-4">Failed to load search script.</p>';
-      };
-      document.head.appendChild(script);
-    })();
-  </script>
 </Base>
