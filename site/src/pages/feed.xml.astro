@@ -1,0 +1,14 @@
+---
+import { BASE_PATH } from '../data/publications'
+import SITE from '../data/site-meta'
+
+const xmlns = 'http://www.w3.org/2005/Atom'
+---
+
+<feed xmlns={xmlns}>
+  <title>{SITE.title}</title>
+  <link href={`${SITE.basePath}/feed.xml`} rel="self" type="application/atom+xml" />
+  <link href={`${SITE.basePath}/`} rel="alternate" type="text/html" />
+  <id>{SITE.basePath}/</id>
+  <updated>{new Date().toISOString()}</updated>
+</feed>

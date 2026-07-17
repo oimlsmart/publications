@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro'
+import { loadDataset, BASE_PATH } from '../../data/publications'
+import { DOCTYPE_LABELS, type Doctype, ALL_DOCTYPES } from '../../data/types'
+import PubCard from '../../components/PubCard.astro'
+
+export async function getStaticPaths() {
+  return ALL_DOCTYPES.map(dt => ({ params: { doctype: dt } }))
+}
+
+const { doctype } = Astro.params as { doctype: Doctype }
+const data = loadDataset()
+const works = (data.byDoctype[doctype] ?? []).sort((a, b) => {
+  const an = parseInt(a.docnumber) || 0
+  const bn = parseInt(b.docnumber) || 0
+  if (an !== bn) return an - bn
+  return (a.year ?? 0) - (b.year ?? 0)
+})
+
+const label = DOCTYPE_LABELS[doctype]
+---
+
+<Base title={label.plural} currentPath={`/browse/${doctype}`}>
+  <section class="px-8 pt-12 pb-6 border-b border-rule">
+    <div class="max-w-7xl mx-auto">
+      <div class="bp-section-anchor mb-3">
+        <span class="bp-section-anchor__num">§ {label.plural[0]}</span>
+        <span>{label.plural}</span>
+        <span class="bp-section-anchor__line"></span>
+        <span class="bp-coord">{works.length} works</span>
+      </div>
+      <h1 class="font-serif text-4xl font-medium tracking-tight mb-3">{label.plural}</h1>
+      <p class="text-ink-soft max-w-2xl">
+        {works.length.toLocaleString('en-US')} {label.singular.toLowerCase()} publications in this category.
+      </p>
+      <a href={`${BASE_PATH}/browse/`} class="text-sm text-accent hover:underline mt-3 inline-block">← Back to all publications</a>
+    </div>
+  </section>
+
+  <section class="px-8 py-6">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {works.map(w => (
+          <PubCard work={w} instanceCount={w.instances.length} />
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>

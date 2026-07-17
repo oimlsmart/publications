@@ -1,0 +1,64 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between
+# the run in-progress and latest queued.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install site dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Build site
+        working-directory: site
+        run: npm run build    # astro build + pagefind --site dist
+
+      - name: Stage PDFs and data into the build artifact
+        run: |
+          # Mirror pdfs/ and data/ into site/dist/ so GitHub Pages can serve them.
+          # Bulletins are already excluded by .gitignore/rsync filters upstream.
+          rsync -a --exclude 'bulletin_*' --exclude '_caco3_downloads' --exclude '_oiml_org_downloads' \
+            pdfs/ site/dist/pdfs/
+          rsync -a data/ site/dist/data/
+          echo "Artifact contents:"
+          du -sh site/dist/*
+
+      - uses: actions/configure-pages@v5
+        id: pages
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v6
+        id: deployment

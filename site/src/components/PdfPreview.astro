@@ -1,0 +1,86 @@
+---
+import { BASE_PATH } from '../data/publications'
+
+interface Props {
+  /** Path under pdfs/, e.g. 'r60_2021/r060-e21.pdf'. */
+  pdfPath: string
+}
+
+const { pdfPath } = Astro.props
+const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
+const workerUrl = `${BASE_PATH}/pdf.worker.min.mjs`
+---
+
+<div class="border border-rule rounded-sm bg-paper-soft dark:bg-paper overflow-hidden">
+  <div class="flex items-center gap-2 px-3 py-2 border-b border-rule bg-paper dark:bg-paper-deep text-sm">
+    <button id="pdf-prev" class="px-2 py-1 border border-rule rounded-sm hover:bg-paper-soft dark:hover:bg-paper">←</button>
+    <span id="pdf-page" class="font-mono text-xs">1 / —</span>
+    <button id="pdf-next" class="px-2 py-1 border border-rule rounded-sm hover:bg-paper-soft dark:hover:bg-paper">→</button>
+    <span class="flex-1"></span>
+    <a href={pdfUrl} download class="text-xs font-mono text-accent hover:underline">⬇ Download PDF</a>
+  </div>
+  <div class="overflow-auto bg-gray-200 dark:bg-gray-900" style="height: 75vh">
+    <canvas id="pdf-canvas" class="mx-auto block shadow-lg" data-pdf-url={pdfUrl} data-worker-url={workerUrl}></canvas>
+  </div>
+  <p id="pdf-loading" class="px-3 py-2 text-sm text-ink-soft font-mono">Loading PDF…</p>
+  <p id="pdf-error" class="hidden px-3 py-2 text-sm text-red-700 dark:text-red-300 font-mono"></p>
+</div>
+
+<script type="module">
+  import * as pdfjsLib from 'pdfjs-dist'
+
+  const canvas = document.getElementById('pdf-canvas') as HTMLCanvasElement
+  if (canvas) {
+    const url = canvas.dataset.pdfUrl!
+    const workerUrl = canvas.dataset.workerUrl!
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
+
+    const prev = document.getElementById('pdf-prev') as HTMLButtonElement
+    const next = document.getElementById('pdf-next') as HTMLButtonElement
+    const pageLabel = document.getElementById('pdf-page') as HTMLElement
+    const loading = document.getElementById('pdf-loading') as HTMLElement
+    const error = document.getElementById('pdf-error') as HTMLElement
+
+    let docPromise: Promise<any> | null = null
+    let currentPage = 1
+
+    async function load() {
+      try {
+        docPromise = docPromise ?? pdfjsLib.getDocument(url).promise
+        const doc = await docPromise
+        await render(currentPage)
+        loading.classList.add('hidden')
+      } catch (e: any) {
+        loading.classList.add('hidden')
+        error.classList.remove('hidden')
+        error.textContent = `Failed to load PDF: ${e.message ?? e}`
+      }
+    }
+
+    async function render(pageNum: number) {
+      if (!docPromise) return
+      const doc = await docPromise
+      if (pageNum < 1) pageNum = 1
+      if (pageNum > doc.numPages) pageNum = doc.numPages
+      currentPage = pageNum
+      pageLabel.textContent = `${pageNum} / ${doc.numPages}`
+      const page = await doc.getPage(pageNum)
+      const container = canvas.parentElement!
+      const desiredWidth = container.clientWidth - 24
+      const viewport = page.getViewport({ scale: 1 })
+      const scale = Math.min(2, Math.max(0.3, desiredWidth / viewport.width))
+      const ctx = canvas.getContext('2d')!
+      const v2 = page.getViewport({ scale })
+      canvas.width = v2.width
+      canvas.height = v2.height
+      canvas.style.width = v2.width + 'px'
+      canvas.style.height = v2.height + 'px'
+      await page.render({ canvasContext: ctx, viewport: v2 }).promise
+    }
+
+    prev.addEventListener('click', () => render(currentPage - 1))
+    next.addEventListener('click', () => render(currentPage + 1))
+
+    load()
+  }
+</script>

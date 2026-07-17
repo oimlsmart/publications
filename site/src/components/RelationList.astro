@@ -1,0 +1,90 @@
+---
+import type { Relation } from '../data/types'
+import { loadDataset, BASE_PATH } from '../data/publications'
+
+interface Props {
+  relations: Relation[]
+  /** Docid of the current pub — excluded from any output. */
+  selfId: string
+}
+
+const { relations, selfId } = Astro.props
+const data = loadDataset()
+
+// Build docid → pub lookup (works AND instances)
+const byDocid = new Map<string, { slug: string; docid: string }>()
+for (const w of data.works.values()) {
+  byDocid.set(w.docid, { slug: w.slug, docid: w.docid })
+}
+for (const inst of data.instances.values()) {
+  byDocid.set(inst.docid, { slug: inst.slug, docid: inst.docid })
+}
+
+const grouped: Record<string, Relation[]> = {}
+for (const r of relations) {
+  if (r.target === selfId) continue
+  ;(grouped[r.type] ??= []).push(r)
+}
+
+const order = [
+  'hasPart', 'partOf',
+  'hasInstance', 'instanceOf',
+  'hasSuccessor', 'successorOf', 'hasPredecessor', 'predecessorOf',
+  'updatedBy', 'updates',
+  'revisedBy', 'revises',
+  'amendedBy', 'amends',
+  'translationOf', 'hasTranslation',
+  'adoptedBy', 'adoptedFrom',
+  'manifestationOf', 'hasManifestation',
+  'related', 'other',
+]
+
+const friendly: Record<string, string> = {
+  hasPart: 'Has parts',
+  partOf: 'Part of',
+  hasInstance: 'Has instances',
+  instanceOf: 'Instance of',
+  hasSuccessor: 'Succeeded by',
+  successorOf: 'Succeeds',
+  hasPredecessor: 'Preceded by',
+  predecessorOf: 'Precedes',
+  updatedBy: 'Updated by',
+  updates: 'Updates',
+  revisedBy: 'Revised by',
+  revises: 'Revises',
+  amendedBy: 'Amended by',
+  amends: 'Amends',
+  translationOf: 'Translation of',
+  hasTranslation: 'Translated as',
+  adoptedBy: 'Adopted by',
+  adoptedFrom: 'Adopted from',
+  manifestationOf: 'Manifestation of',
+  hasManifestation: 'Has manifestations',
+  related: 'Related',
+  other: 'Other relations',
+}
+---
+
+{order.map(type => grouped[type] && (
+  <div class="border-t border-rule pt-3 mt-3 first:border-0 first:pt-0 first:mt-0">
+    <h4 class="text-xs font-mono uppercase tracking-wide text-ink-soft mb-2">
+      {friendly[type] ?? type}
+    </h4>
+    <ul class="space-y-1">
+      {grouped[type].map(r => {
+        const hit = byDocid.get(r.target)
+        const label = hit ? hit.docid : r.target
+        const href = hit ? `${BASE_PATH}/pub/${hit.slug}/` : undefined
+        return (
+          <li class="text-sm">
+            {href ? (
+              <a href={href} class="text-accent hover:underline font-mono">{label}</a>
+            ) : (
+              <span class="font-mono text-ink-soft">{label}</span>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  </div>
+))}

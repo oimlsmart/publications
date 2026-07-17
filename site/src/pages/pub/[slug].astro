@@ -1,0 +1,30 @@
+---
+import type { PubWork, PubInstance } from '../../data/types'
+import { loadDataset } from '../../data/publications'
+import PubWorkPage from '../../components/PubWorkPage.astro'
+import PubInstancePage from '../../components/PubInstancePage.astro'
+
+export async function getStaticPaths() {
+  const data = loadDataset()
+  const paths: any[] = []
+  for (const w of data.works.values()) {
+    paths.push({ params: { slug: w.slug }, props: { kind: 'work', record: w } })
+  }
+  for (const inst of data.instances.values()) {
+    paths.push({ params: { slug: inst.slug }, props: { kind: 'instance', record: inst } })
+  }
+  return paths
+}
+
+interface Props {
+  kind: 'work' | 'instance'
+  record: PubWork | PubInstance
+}
+const { kind, record } = Astro.props as Props
+---
+
+{kind === 'work' ? (
+  <PubWorkPage work={record as PubWork} />
+) : (
+  <PubInstancePage instance={record as PubInstance} />
+)}

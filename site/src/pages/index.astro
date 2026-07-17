@@ -1,0 +1,110 @@
+---
+import Base from '../layouts/Base.astro'
+import { loadDataset, BASE_PATH } from '../data/publications'
+import { ALL_DOCTYPES, DOCTYPE_LABELS } from '../data/types'
+
+const data = loadDataset()
+const stats = data.stats
+
+const heroStats = [
+  { label: 'Publications', value: stats.totalWorks, format: 'comma' },
+  { label: 'PDFs mirrored', value: stats.totalPdfsWithFile, format: 'comma' },
+  { label: 'Languages', value: Object.keys(stats.byLanguage).length, format: 'int' },
+  { label: 'In force', value: stats.byStatus['in-force'] ?? 0, format: 'comma' },
+]
+
+const fmt = (n: number, format: string) =>
+  format === 'comma' ? n.toLocaleString('en-US') : String(n)
+---
+
+<Base currentPath="/">
+  <section class="relative px-8 pt-16 pb-12 border-b border-rule bp-grid bp-grid--major bp-noise">
+    <div class="max-w-6xl mx-auto relative z-10">
+      <div class="bp-section-anchor mb-5">
+        <span class="bp-section-anchor__num">§ OIML</span>
+        <span>Publications</span>
+        <span class="bp-section-anchor__line"></span>
+        <span class="bp-coord">Public mirror</span>
+      </div>
+      <h1 class="font-serif text-[clamp(2.25rem,5.5vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.025em] mb-5 bp-reveal">
+        Every <em class="italic font-normal text-accent">OIML publication</em>, in one archive
+      </h1>
+      <p class="text-[1.125rem] leading-[1.6] text-ink-soft max-w-2xl bp-reveal" style="--reveal-delay:80ms;">
+        Bibliographic data and PDFs for all OIML International Recommendations, Documents,
+        Guides, Vocabularies, Basic Publications, Expert Reports, and Seminar Reports — searchable,
+        cross-linked, and machine-readable.
+      </p>
+
+      <form action={`${BASE_PATH}/search/`} method="get" class="mt-8 flex gap-2 bp-reveal" style="--reveal-delay:160ms;">
+        <input
+          type="search"
+          name="q"
+          placeholder="Search by title, doc number, or scope…"
+          class="flex-1 px-4 py-3 bg-paper dark:bg-paper-deep border border-rule rounded-sm focus:border-accent focus:outline-none"
+        />
+        <button type="submit" class="px-6 py-3 bg-accent text-paper-soft dark:text-paper-deep font-semibold rounded-sm hover:bg-brand-700 transition-colors">
+          Search
+        </button>
+      </form>
+
+      <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-px bg-rule border border-rule rounded-md overflow-hidden bp-reveal" style="--reveal-delay:240ms;">
+        {heroStats.map(s => (
+          <a href={`${BASE_PATH}/browse/`} class="bg-paper-soft dark:bg-paper p-5 text-center hover:bg-paper dark:hover:bg-paper-deep transition-colors">
+            <div class="bp-metric">
+              <span class="bp-metric__value block text-3xl font-serif text-ink">{fmt(s.value, s.format)}</span>
+              <span class="bp-metric__label text-xs font-mono uppercase tracking-wide text-ink-soft mt-1 block">{s.label}</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="px-8 py-12 border-b border-rule">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="font-serif text-2xl mb-6">Browse by publication type</h2>
+      <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
+        {ALL_DOCTYPES.map(dt => (
+          <a href={`${BASE_PATH}/browse/${dt}/`} class="border border-rule p-4 rounded-sm hover:border-accent hover:shadow-md transition-all bg-paper-soft dark:bg-paper">
+            <div class="text-xs font-mono uppercase text-ink-soft tracking-wide mb-1">{stats.byDoctype[dt] ?? 0}</div>
+            <div class="font-serif text-lg">{DOCTYPE_LABELS[dt].plural}</div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="px-8 py-12 border-b border-rule">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="font-serif text-2xl mb-2">Current status</h2>
+      <p class="text-ink-soft mb-6">Most publications are in force; some have been superseded or withdrawn.</p>
+      <div class="grid sm:grid-cols-3 gap-4">
+        <a href={`${BASE_PATH}/browse/?status=in-force`} class="border border-green-300 dark:border-green-800 p-5 rounded-sm hover:shadow-md transition-all">
+          <div class="text-3xl font-serif text-green-800 dark:text-green-200">{stats.byStatus['in-force'] ?? 0}</div>
+          <div class="text-sm text-ink-soft mt-1">In force</div>
+        </a>
+        <a href={`${BASE_PATH}/browse/?status=superseded`} class="border border-amber-300 dark:border-amber-800 p-5 rounded-sm hover:shadow-md transition-all">
+          <div class="text-3xl font-serif text-amber-800 dark:text-amber-200">{stats.byStatus['superseded'] ?? 0}</div>
+          <div class="text-sm text-ink-soft mt-1">Superseded</div>
+        </a>
+        <a href={`${BASE_PATH}/browse/?status=withdrawn`} class="border border-red-300 dark:border-red-800 p-5 rounded-sm hover:shadow-md transition-all">
+          <div class="text-3xl font-serif text-red-800 dark:text-red-200">{stats.byStatus['withdrawn'] ?? 0}</div>
+          <div class="text-sm text-ink-soft mt-1">Withdrawn</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="px-8 py-12">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="font-serif text-2xl mb-2">Machine-readable</h2>
+      <p class="text-ink-soft mb-6">Every publication record is available in multiple formats.</p>
+      <ul class="space-y-2 text-sm font-mono">
+        <li><code>/data/&lt;file&gt;.yaml</code> — raw relaton YAML (the source of truth)</li>
+        <li><code>{BASE_PATH}/api/publications.json</code> — compact JSON index of all works</li>
+        <li><code>{BASE_PATH}/api/publications/&lt;slug&gt;</code> — per-work JSON</li>
+        <li><code>&lt;link rel="alternate" type="application/yaml"&gt;</code> — Schema.org JSON-LD on every pub page</li>
+      </ul>
+    </div>
+  </section>
+</Base>

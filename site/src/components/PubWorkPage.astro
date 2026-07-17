@@ -1,0 +1,136 @@
+---
+import Base from '../layouts/Base.astro'
+import type { PubWork, PubInstance } from '../data/types'
+import { loadDataset, BASE_PATH } from '../data/publications'
+import PubCard from './PubCard.astro'
+import RelationList from './RelationList.astro'
+import DoctypeChip from './DoctypeChip.astro'
+import StatusBadge from './StatusBadge.astro'
+import { LANG_LABELS } from '../data/types'
+
+export interface Props {
+  work: PubWork
+}
+const { work } = Astro.props
+const data = loadDataset()
+
+const instances = work.instances
+  .map(id => data.instances.get(id))
+  .filter((x): x is PubInstance => Boolean(x))
+  .sort((a, b) => a.language.localeCompare(b.language))
+const parts = work.partWorkIds
+  .map(id => data.works.get(id))
+  .filter((x): x is PubWork => Boolean(x))
+const title = work.title.eng ?? work.title.fra ?? work.docid
+const parentWork = work.parentWorkId ? data.works.get(work.parentWorkId) : undefined
+---
+
+<Base title={work.docid} currentPath={`/pub/${work.slug}`}>
+  <slot name="head" slot="head">
+    <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${work.slug}`} />
+    <meta property="og:title" content={work.docid} />
+    <meta property="og:description" content={work.scope ?? title} />
+    {work.doi && <meta name="citation_doi" content={work.doi} />}
+    {work.publishedAt && <meta name="citation_publication_date" content={work.publishedAt} />}
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': ['Standard', 'CreativeWork'],
+      '@id': `${BASE_PATH}/pub/${work.slug}/`,
+      identifier: work.docid,
+      name: title,
+      description: work.scope,
+      datePublished: work.publishedAt,
+      inLanguage: instances.map(i => i.language),
+      isPartOf: parentWork ? `${BASE_PATH}/pub/${parentWork.slug}/` : undefined,
+      hasPart: parts.map(p => `${BASE_PATH}/pub/${p.slug}/`),
+      doi: work.doi,
+      publisher: { '@type': 'Organization', name: 'OIML' },
+    })} />
+  </slot>
+
+  <section class="px-8 pt-12 pb-8 border-b border-rule">
+    <div class="max-w-6xl mx-auto">
+      <div class="bp-section-anchor mb-3">
+        <span class="bp-section-anchor__num">§ {work.docnumber}</span>
+        <span>{work.doctype}</span>
+        <span class="bp-section-anchor__line"></span>
+        <span class="bp-coord">{work.year ?? '—'}</span>
+      </div>
+
+      <div class="flex items-center gap-2 mb-3 flex-wrap">
+        <DoctypeChip doctype={work.doctype} />
+        <span class="font-mono text-sm text-ink-soft">{work.docid}</span>
+        <StatusBadge status={work.status} replacedBy={work.replacedBy} />
+        {work.highPriority && (
+          <span class="px-2 py-0.5 text-xs font-mono uppercase border border-amber-400 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded-sm">
+            ★ High priority
+          </span>
+        )}
+      </div>
+
+      <h1 class="font-serif text-4xl font-medium leading-[1.1] tracking-tight mb-3">{title}</h1>
+      {work.scope && <p class="text-lg text-ink-soft max-w-3xl mb-4">{work.scope}</p>}
+
+      <dl class="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm font-mono mt-6">
+        {work.year && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">Published</dt><dd class="text-base">{work.year}</dd></div>)}
+        {work.tc && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">TC / SC</dt><dd class="text-base">{work.tc}</dd></div>)}
+        {work.sustainabilityFramework && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">Sustainability</dt><dd class="text-base">{work.sustainabilityFramework}</dd></div>)}
+        {work.doi && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">DOI</dt><dd class="text-base"><a class="text-accent hover:underline" href={`https://doi.org/${work.doi}`}>{work.doi}</a></dd></div>)}
+      </dl>
+    </div>
+  </section>
+
+  {parentWork && (
+    <section class="px-8 py-4 border-b border-rule bg-paper-soft dark:bg-paper">
+      <div class="max-w-6xl mx-auto text-sm">
+        Part of <a href={`${BASE_PATH}/pub/${parentWork.slug}/`} class="text-accent hover:underline font-mono">{parentWork.docid}</a>
+      </div>
+    </section>
+  )}
+
+  <section class="px-8 py-8 border-b border-rule">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="font-serif text-2xl mb-4">Editions & languages</h2>
+      {instances.length === 0 ? (
+        <p class="text-ink-soft text-sm">No language instances recorded for this work.</p>
+      ) : (
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {instances.map(inst => (
+            <a href={`${BASE_PATH}/pub/${inst.slug}/`} class="border border-rule p-4 rounded-sm hover:border-accent hover:shadow-md transition-all bg-paper-soft dark:bg-paper">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">{inst.language}</span>
+                <span class="text-xs text-ink-soft">{LANG_LABELS[inst.language] ?? inst.language}</span>
+              </div>
+              <div class="text-sm font-mono text-ink-soft">{inst.docid}</div>
+              {inst.localPdfPath ? (
+                <div class="text-xs mt-2 text-green-700 dark:text-green-300 font-mono">PDF available ({Math.round((inst.fileSize ?? 0) / 1024 / 1024 * 10) / 10} MB)</div>
+              ) : (
+                <div class="text-xs mt-2 text-amber-700 dark:text-amber-300 font-mono">No local PDF</div>
+              )}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+
+  {parts.length > 0 && (
+    <section class="px-8 py-8 border-b border-rule">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="font-serif text-2xl mb-4">Parts</h2>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {parts.map(p => <PubCard work={p} instanceCount={p.instances.length} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {work.relations.length > 0 && (
+    <section class="px-8 py-8">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="font-serif text-2xl mb-4">Related publications</h2>
+        <RelationList relations={work.relations} selfId={work.docid} />
+      </div>
+    </section>
+  )}
+</Base>

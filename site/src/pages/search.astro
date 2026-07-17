@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro'
+import { BASE_PATH } from '../data/publications'
+
+const q = (Astro.url.searchParams.get('q') ?? '').trim()
+---
+
+<Base title="Search" currentPath="/search">
+  <section class="px-8 pt-12 pb-6 border-b border-rule">
+    <div class="max-w-4xl mx-auto">
+      <div class="bp-section-anchor mb-3">
+        <span class="bp-section-anchor__num">§ ?</span>
+        <span>Search</span>
+        <span class="bp-section-anchor__line"></span>
+        <span class="bp-coord">Pagefind</span>
+      </div>
+      <h1 class="font-serif text-4xl font-medium tracking-tight mb-4">Search publications</h1>
+      <p class="text-ink-soft mb-6">
+        Full-text search across every publication's title, scope, identifiers,
+        technical committee, and the bibliographic metadata embedded in the
+        page. Search results link to the matching work page.
+      </p>
+      <div id="search-mount"></div>
+    </div>
+  </section>
+
+  <section class="px-8 py-8">
+    <div class="max-w-4xl mx-auto">
+      <link rel="stylesheet" href={`${BASE_PATH}/pagefind/pagefind-ui.css`} />
+      <div id="search"></div>
+    </div>
+  </section>
+
+  <script is:inline define={{ q }}>
+    (async function () {
+      const { PagefindUI } = await import('/publications/pagefind/pagefind-ui.js')
+      new PagefindUI({
+        element: '#search',
+        showSubResults: true,
+        showImages: false,
+        translations: {
+          placeholder: 'Search publications…',
+          zero_results: 'No matching publications found.',
+        },
+      })
+      // Wait for the input to appear, then set initial value
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      let attempts = 0
+      while (attempts++ < 50) {
+        const input = document.querySelector('#search input[type="search"]') as HTMLInputElement | null
+        if (input && q) {
+          input.value = q
+          input.dispatchEvent(new Event('input', { bubbles: true }))
+          return
+        }
+        await wait(20)
+      }
+    })()
+  </script>
+</Base>
