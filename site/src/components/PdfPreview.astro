@@ -25,7 +25,7 @@ const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
   <p id="pdf-error" class="hidden px-3 py-2 text-sm text-red-700 dark:text-red-300 font-mono"></p>
 </div>
 
-<script is:inline define={{ pdfUrl }}>
+<script is:inline>
   (function () {
     var PDFJS_VERSION = '4.8.69';
     var pdfjsSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VERSION + '/build/pdf.min.mjs';
@@ -33,7 +33,7 @@ const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
 
     var canvas = document.getElementById('pdf-canvas');
     if (!canvas) return;
-    var url = pdfUrl;
+    var url = canvas.dataset.pdfUrl;
     var prevBtn = document.getElementById('pdf-prev');
     var nextBtn = document.getElementById('pdf-next');
     var pageLabel = document.getElementById('pdf-page');
