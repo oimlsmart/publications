@@ -5,12 +5,9 @@ import { ALL_DOCTYPES, DOCTYPE_LABELS } from '../../data/types'
 import PubCard from '../../components/PubCard.astro'
 
 const data = loadDataset()
-// Sort works by docnumber then year
-const allWorks = [...data.works.values()].sort((a, b) => {
-  const an = parseInt(a.docnumber) || 0
-  const bn = parseInt(b.docnumber) || 0
-  if (an !== bn) return an - bn
-  return (a.year ?? 0) - (b.year ?? 0)
+const allSeries = [...data.series].sort((a, b) => {
+  if (a.doctype !== b.doctype) return a.doctype.localeCompare(b.doctype)
+  return parseInt(a.docnumber) - parseInt(b.docnumber)
 })
 
 const stats = data.stats
@@ -23,12 +20,12 @@ const stats = data.stats
         <span class="bp-section-anchor__num">§ B</span>
         <span>Browse</span>
         <span class="bp-section-anchor__line"></span>
-        <span class="bp-coord">{stats.totalWorks} works</span>
+        <span class="bp-coord">{stats.totalSeries} publications</span>
       </div>
       <h1 class="font-serif text-4xl font-medium tracking-tight mb-3">Browse all publications</h1>
       <p class="text-ink-soft max-w-2xl">
-        {stats.totalWorks.toLocaleString('en-US')} work-level publications, {stats.totalInstances.toLocaleString('en-US')} language instances,
-        {stats.totalPdfsWithFile.toLocaleString('en-US')} PDFs mirrored.
+        {stats.totalSeries.toLocaleString('en-US')} OIML publications across {stats.totalEditions.toLocaleString('en-US')} editions
+        and {stats.totalPdfsWithFile.toLocaleString('en-US')} PDFs.
       </p>
     </div>
   </section>
@@ -45,9 +42,7 @@ const stats = data.stats
       </div>
 
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {allWorks.map(w => (
-          <PubCard work={w} instanceCount={w.instances.length} />
-        ))}
+        {allSeries.map(s => <PubCard series={s} />)}
       </div>
     </div>
   </section>

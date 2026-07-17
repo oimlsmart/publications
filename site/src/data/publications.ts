@@ -1,21 +1,20 @@
 // ─────────────────────────────────────────────────────────────────────
 // Publications loader — reads every relaton YAML under ../../data/ at
-// Astro build time, classifies by work vs instance, resolves PDF paths,
-// and produces a typed Dataset.
+// Astro build time, classifies into Series → Edition → Part → Instance,
+// resolves PDF paths, and produces a typed Dataset.
 //
 // One function: `loadDataset()`. Memoized so all pages share one parse.
 // ─────────────────────────────────────────────────────────────────────
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
-import { join, basename, dirname } from 'node:path'
+import { join } from 'node:path'
 import { parse } from 'yaml'
 import type {
-  Dataset, PubWork, PubInstance, Doctype, Status, Lang, Relation, Contributor,
+  Dataset, Series, Edition, Part, Instance,
+  Doctype, Status, Lang, Relation,
 } from './types'
-import { ALL_DOCTYPES, DOCTYPE_LABELS, EXCLUDED_DOCTYPES } from './types'
+import { ALL_DOCTYPES, EXCLUDED_DOCTYPES } from './types'
 
-// Resolve via process.cwd() — Astro runs the build with cwd = site/
-// So data/ and pdfs/ live one dir up: ../data, ../pdfs
 const ROOT = join(process.cwd(), '..')
 const DATA_DIR = join(ROOT, 'data')
 const PDFS_DIR = join(ROOT, 'pdfs')
@@ -25,43 +24,30 @@ export const BASE_PATH = '/publications'
 
 // ─── id/slug helpers ─────────────────────────────────────────────────
 
-const LANG_SUFFIX_RE = /-(E|F|Ara|Eng|Fra|Sr|Ukr|Zho|Rus|Pol|Por|Spa|Deu|Chi|FAra|Fa|Cn|Ua|Ro)$/
+// Match language suffix on relaton id: -E, -F (old) or -eng, -fra, -ara, etc.
+const LANG_SUFFIX_RE = /-(E|F|A|Sr|Uk|Eng|Fra|Ara|Deu|Rus|Pol|Por|Spa|Zho|Chi|Fa|Cn|Ua|Ro|eng|fra|ara|srp|ukr|deu|rus|pol|por|spa|zho|chi)$/i
 
 const LANG_CODE_MAP: Record<string, Lang> = {
-  E: 'eng', F: 'fra',
-  Eng: 'eng', Fra: 'fra',
-  A: 'ara', Ara: 'ara',
-  Sr: 'srp',
-  Ukr: 'ukr',
-  Zho: 'zho', Chi: 'zho', Cn: 'zho',
-  Deu: 'deu',
-  Rus: 'rus',
-  Pol: 'pol',
-  Por: 'por',
-  Spa: 'spa', Sp: 'spa',
-  Fa: 'fas', FAra: 'fas',
-  Ua: 'ukr',
-  Ro: 'ron',
+  e: 'eng', f: 'fra', a: 'ara',
+  eng: 'eng', fra: 'fra', ara: 'ara',
+  sr: 'srp', srp: 'srp',
+  ukr: 'ukr', uk: 'ukr', ua: 'ukr',
+  zho: 'zho', chi: 'zho', cn: 'zho',
+  deu: 'deu', rus: 'rus', pol: 'pol', por: 'por',
+  spa: 'spa', sp: 'spa', fa: 'fas', fara: 'fas', ro: 'ron',
 }
 
-/** 'R60-2021-E' → 'eng'; 'R60-2021' → undefined. */
 function languageFromId(id: string): Lang | undefined {
   const m = id.match(LANG_SUFFIX_RE)
   if (!m) return undefined
-  return LANG_CODE_MAP[m[1]] ?? 'unknown' as Lang
+  return LANG_CODE_MAP[m[1].toLowerCase()] ?? ('unknown' as Lang)
 }
 
-/** 'R60-2021-E' → 'R60-2021'. */
-function workIdOf(id: string): string {
-  return id.replace(LANG_SUFFIX_RE, '')
-}
-
-/** 'R60-2021' → 'r60-2021'; 'B10-1-2004+Amendment-2006-E' → 'b10-1-2004-amendment-2006-e'. */
 function slugify(id: string): string {
   return id.toLowerCase().replace(/[+]/g, '-').replace(/[^a-z0-9-]/g, '-')
 }
 
-// ─── doctype + status parsing ────────────────────────────────────────
+// ─── YAML parsing helpers ────────────────────────────────────────────
 
 function doctypeOf(yaml: any): Doctype | 'excluded' | 'unknown' {
   const raw = yaml?.ext?.doctype
@@ -76,7 +62,6 @@ function doctypeOf(yaml: any): Doctype | 'excluded' | 'unknown' {
 
 function statusOf(yaml: any): Status {
   const stage = yaml?.status?.stage?.content
-  const relationStatus = yaml?.status?.relation?.type // 'instance', 'versionOf'
   if (!stage) {
     if (yaml?.status?.stage?._deleted) return 'withdrawn'
     return 'unknown'
@@ -88,7 +73,24 @@ function statusOf(yaml: any): Status {
   return 'unknown'
 }
 
-// ─── relations parsing ───────────────────────────────────────────────
+function titlesOf(yaml: any): Partial<Record<Lang, string>> {
+  const out: Partial<Record<Lang, string>> = {}
+  for (const t of yaml?.title ?? []) {
+    if (!t?.content) continue
+    const lang = t.language
+    if (lang) (out as any)[lang] = t.content
+  }
+  return out
+}
+
+function tcOf(yaml: any): string | undefined {
+  const c = yaml?.contributor?.find((c: any) => c.role?.includes('author'))
+  const subdiv = c?.organization?.subdivision?.[0]
+  if (!subdiv) return c?.organization?.abbreviation?.content
+  const tc = subdiv.identifier?.find((i: any) => i.type === 'technical-committee')?.content
+  const sc = subdiv.identifier?.find((i: any) => i.type === 'subcommittee')?.content
+  return [tc, sc].filter(Boolean).join('/') || subdiv.name?.[0]?.content
+}
 
 const RELATION_TYPES = new Set([
   'hasPart', 'partOf',
@@ -115,7 +117,6 @@ function relationsOf(yaml: any): Relation[] {
     seen.add(key)
     out.push({ type, target })
   }
-
   for (const r of yaml?.relation ?? []) {
     const t = r?.type
     if (!t) continue
@@ -126,44 +127,14 @@ function relationsOf(yaml: any): Relation[] {
     if (RELATION_TYPES.has(t)) push(t as Relation['type'], target)
     else push('other', target)
   }
-
-  // Status relation also encodes a successor link
   const succ = yaml?.status?.relation?.bibitem?.docidentifier?.[0]?.content
   const succType = yaml?.status?.relation?.subtype
-  if (succ && succType === 'supersedes') push('replacedBy', succ)
-
+  if (succ && succType === 'supersedes') push('hasSuccessor', succ)
   return out
 }
 
 // ─── PDF path resolution ─────────────────────────────────────────────
 
-/**
- * Resolve an upstream PDF URL to a local mirror path under pdfs/.
- *
- * We use the same layout as relaton-data-oiml/pdfs/, which is:
- *   pdfs/<letter><num>_<year>/<basename>
- *     e.g. pdfs/r60_2021/r060-e21.pdf
- *
- * Multi-part pubs follow the same convention with parts_* subdirs:
- *   pdfs/r60_2017/parts_eng/R060-1-e17.pdf
- *
- * We look for the basename in any subdirectory under pdfs/, with a
- * fast path for the common layout.
- */
-function resolveLocalPdf(sourceUrl: string | undefined): { path?: string; size?: number } {
-  if (!sourceUrl || sourceUrl.endsWith('/None') || !sourceUrl.includes('.pdf')) return {}
-  const basename = sourceUrl.split('/').pop()!
-  // Fast path: walk pdfs/ at build time, find the basename
-  const hit = PDF_BASENAME_INDEX.get(basename)
-  if (!hit) return {}
-  const abs = join(PDFS_DIR, hit)
-  if (!existsSync(abs)) return {}
-  let size: number | undefined
-  try { size = statSync(abs).size } catch { /* ignore */ }
-  return { path: hit, size }
-}
-
-// Build once at module load: basename → relative-path-under-pdfs/
 const PDF_BASENAME_INDEX = new Map<string, string>()
 
 function buildPdfIndex() {
@@ -185,25 +156,115 @@ function buildPdfIndex() {
   }
 }
 
-// ─── title parsing ───────────────────────────────────────────────────
-
-function titlesOf(yaml: any): Partial<Record<Lang, string>> {
-  const out: Partial<Record<Lang, string>> = {}
-  for (const t of yaml?.title ?? []) {
-    if (!t?.content) continue
-    const lang = t.language
-    if (lang) (out as any)[lang] = t.content
-  }
-  // Fallback to a link title
-  for (const l of yaml?.link ?? []) {
-    if (l?.title?.content && l.type === 'website' && l.title.language) {
-      (out as any)[l.title.language] ??= l.title.content
-    }
-  }
-  return out
+function resolveLocalPdf(sourceUrl: string | undefined): { path?: string; size?: number } {
+  if (!sourceUrl || sourceUrl.endsWith('/None') || !sourceUrl.includes('.pdf')) return {}
+  const basename = sourceUrl.split('/').pop()!
+  const hit = PDF_BASENAME_INDEX.get(basename)
+  if (!hit) return {}
+  const abs = join(PDFS_DIR, hit)
+  if (!existsSync(abs)) return {}
+  let size: number | undefined
+  try { size = statSync(abs).size } catch { /* ignore */ }
+  return { path: hit, size }
 }
 
-// ─── the loader ──────────────────────────────────────────────────────
+// ─── raw record (one per YAML) ───────────────────────────────────────
+
+interface RawRec {
+  id: string
+  slug: string
+  docid: string
+  doctype: Doctype
+  docnumber: string
+  /** Part number as string, or undefined if not a part. */
+  partNumber?: string
+  year?: number
+  title: Partial<Record<Lang, string>>
+  scope?: string
+  status: Status
+  tc?: string
+  sustainabilityFramework?: 'People' | 'Prosperity' | 'Planet'
+  highPriority?: boolean
+  doi?: string
+  publishedAt?: string
+  relations: Relation[]
+  localYamlPath: string
+  /** Set only on instance records. */
+  language?: Lang
+  sourceUrl?: string
+  localPdfPath?: string
+  fileSize?: number
+}
+
+function partNumberFromDocid(docid: string): string | undefined {
+  // "OIML R 60-1:2021" → "1"; "OIML R 60:2021" → undefined
+  const m = docid.match(/\b([A-Z])\s*(\d+)-(\d+):/)
+  if (!m) return undefined
+  return m[3]
+}
+
+function yearFromDocid(docid: string): number | undefined {
+  const m = docid.match(/:(\d{4})\b/)
+  return m ? parseInt(m[1], 10) : undefined
+}
+
+function parseRaw(file: string): RawRec | null {
+  const abs = join(DATA_DIR, file)
+  let yaml: any
+  try { yaml = parse(readFileSync(abs, 'utf8')) }
+  catch { return null }
+  if (!yaml?.id) return null
+
+  const dt = doctypeOf(yaml)
+  if (dt === 'excluded' || dt === 'unknown') return null
+
+  const id: string = yaml.id
+  const docid: string = yaml.docidentifier?.find((d: any) => d?.primary)?.content
+    ?? yaml.docidentifier?.[0]?.content
+    ?? id
+  const docnumber: string = String(yaml.docnumber ?? '')
+
+  const year = yaml.date?.find((d: any) => d.type === 'published')?.from
+    ? new Date(yaml.date.find((d: any) => d.type === 'published').from).getFullYear()
+    : (yearFromDocid(docid) ?? undefined)
+
+  const lang = languageFromId(id)
+
+  const rec: RawRec = {
+    id,
+    slug: slugify(id),
+    docid,
+    doctype: dt,
+    docnumber,
+    partNumber: partNumberFromDocid(docid),
+    year,
+    title: titlesOf(yaml),
+    scope: yaml?.ext?.scope,
+    status: statusOf(yaml),
+    tc: tcOf(yaml),
+    sustainabilityFramework: yaml?.ext?.sustainability_framework,
+    highPriority: yaml?.ext?.high_priority === true,
+    doi: yaml?.ext?.doi,
+    publishedAt: yaml.date?.find((d: any) => d.type === 'published')?.from,
+    relations: relationsOf(yaml),
+    localYamlPath: `${BASE_PATH}/data/${file}`,
+  }
+
+  if (lang) {
+    rec.language = lang
+    const sourceUrl: string | undefined = yaml.source?.find((s: any) => s.type === 'website')?.content
+    if (sourceUrl) rec.sourceUrl = sourceUrl
+    const pdf = resolveLocalPdf(sourceUrl)
+    if (pdf.path) {
+      rec.localPdfPath = `${BASE_PATH}/pdfs/${pdf.path}`
+      rec.fileSize = pdf.size
+    }
+  }
+
+  return rec
+}
+
+// ─── build the hierarchy ─────────────────────────────────────────────
 
 let _cached: Dataset | undefined
 
@@ -212,194 +273,248 @@ export function loadDataset(): Dataset {
 
   buildPdfIndex()
 
-  const works = new Map<string, PubWork>()
-  const instances = new Map<string, PubInstance>()
-
-  let entries: string[]
-  try { entries = readdirSync(DATA_DIR).filter(f => f.endsWith('.yaml')) }
+  let files: string[]
+  try { files = readdirSync(DATA_DIR).filter(f => f.endsWith('.yaml')) }
   catch (e) { throw new Error(`cannot read ${DATA_DIR}: ${(e as Error).message}`) }
 
-  for (const file of entries) {
-    const abs = join(DATA_DIR, file)
-    let yaml: any
-    try { yaml = parse(readFileSync(abs, 'utf8')) }
-    catch { /* skip malformed */ }
-    if (!yaml?.id) continue
+  const raws: RawRec[] = []
+  for (const f of files) {
+    const r = parseRaw(f)
+    if (r) raws.push(r)
+  }
 
-    const dt = doctypeOf(yaml)
-    if (dt === 'excluded' || dt === 'unknown') continue
+  // Index by id for relation resolution
+  const byId = new Map<string, RawRec>()
+  for (const r of raws) byId.set(r.id, r)
+  // Also by docid (e.g. "OIML R 60:2021")
+  const byDocid = new Map<string, RawRec>()
+  for (const r of raws) byDocid.set(r.docid, r)
 
-    const id: string = yaml.id
-    const lang = languageFromId(id)
-    const docid: string = yaml.docidentifier?.find((d: any) => d?.primary)?.content
-      ?? yaml.docidentifier?.[0]?.content
-      ?? id
-    const docnumber: string = String(yaml.docnumber ?? '')
-    const year = yaml.date?.find((d: any) => d.type === 'published')?.from
-      ? new Date(yaml.date.find((d: any) => d.type === 'published').from).getFullYear()
-      : undefined
-    const partMatch = docid.match(/(\d+)-(\d+):/)
-    const part = partMatch ? partMatch[2] : undefined
+  // Split into instances vs works
+  const instances = raws.filter(r => r.language !== undefined)
+  const works = raws.filter(r => r.language === undefined)
 
-    const base: PubWork = {
-      id,
-      slug: slugify(id),
-      docid,
-      doctype: dt,
-      docnumber,
-      part,
-      year,
-      title: titlesOf(yaml),
-      scope: yaml?.ext?.scope,
-      status: statusOf(yaml),
-      tc: tcOf(yaml),
-      sustainabilityFramework: yaml?.ext?.sustainability_framework,
-      highPriority: yaml?.ext?.high_priority === true,
-      doi: yaml?.ext?.doi,
-      publishedAt: yaml.date?.find((d: any) => d.type === 'published')?.from,
-      relations: relationsOf(yaml),
-      instances: [],
-      partWorkIds: [],
-      parentWorkId: undefined,
+  // Build Instance objects
+  const instObjs = new Map<string, Instance>()
+  for (const r of instances) {
+    instObjs.set(r.id, {
+      id: r.id, slug: r.slug, docid: r.docid,
+      language: r.language!,
+      sourceUrl: r.sourceUrl ?? '',
+      localPdfPath: r.localPdfPath,
+      localYamlPath: r.localYamlPath,
+      fileSize: r.fileSize,
+      publishedAt: r.publishedAt,
+      doi: r.doi,
+      relations: r.relations,
+    })
+  }
+
+  // Build Part objects for part-works (those with a partNumber)
+  const partWorks = works.filter(w => w.partNumber !== undefined)
+  const editionWorks = works.filter(w => w.partNumber === undefined)
+
+  // For each part-work, find its instances (via hasInstance relations)
+  const parts = new Map<string, Part>()
+  for (const w of partWorks) {
+    const insts = findInstancesFor(w, byId, byDocid, instObjs)
+    parts.set(w.id, {
+      id: w.id, slug: w.slug, docid: w.docid,
+      partNumber: w.partNumber!,
+      title: w.title,
+      scope: w.scope,
+      instances: insts,
+      status: w.status,
+      doi: w.doi,
+      relations: w.relations,
+    })
+  }
+
+  // Build Edition objects
+  const editions = new Map<string, Edition>()
+  for (const w of editionWorks) {
+    // Direct instances (single-document editions)
+    const directInsts = findInstancesFor(w, byId, byDocid, instObjs)
+    // Parts that belong to this edition (via hasPart relation)
+    const editionParts: Part[] = []
+    for (const rel of w.relations) {
+      if (rel.type !== 'hasPart') continue
+      // Resolve target docid → part work
+      const targetWork = byDocid.get(rel.target)
+      if (!targetWork) continue
+      const part = parts.get(targetWork.id)
+      if (part) editionParts.push(part)
     }
 
-    const { replaces = [], replacedBy = [] } = splitReplaces(base.relations)
-    base.replaces = replaces
-    base.replacedBy = replacedBy
+    editions.set(w.id, {
+      id: w.id,
+      slug: w.slug,
+      docid: w.docid,
+      year: w.year ?? 0,
+      title: w.title,
+      scope: w.scope,
+      status: w.status,
+      tc: w.tc,
+      sustainabilityFramework: w.sustainabilityFramework,
+      highPriority: w.highPriority,
+      doi: w.doi,
+      publishedAt: w.publishedAt,
+      parts: editionParts.sort((a, b) => a.partNumber.localeCompare(b.partNumber, undefined, { numeric: true })),
+      instances: directInsts.sort((a, b) => a.language.localeCompare(b.language)),
+      relations: w.relations,
+      languages: () => {
+        const set = new Set<Lang>()
+        for (const i of directInsts) set.add(i.language)
+        for (const p of editionParts) for (const i of p.instances) set.add(i.language)
+        return [...set]
+      },
+    })
+  }
 
-    const localYamlPath = `${BASE_PATH}/data/${file}`
+  // Group editions into Series by (doctype, docnumber)
+  const seriesMap = new Map<string, Series>()
+  for (const ed of editions.values()) {
+    const key = `${ed.doctype ?? 'unknown'}-${extractDocnumber(ed.docid)}`
+    // We need doctype — get from raw
+    const raw = byId.get(ed.id)
+    const doctype = raw?.doctype ?? 'unknown' as Doctype
+    const realKey = `${doctype}-${raw?.docnumber ?? ''}`
+    const docnumber = raw?.docnumber ?? ''
+    if (!seriesMap.has(realKey)) {
+      seriesMap.set(realKey, {
+        key: realKey,
+        slug: `${doctype[0]}${docnumber}`.toLowerCase(),
+        docid: `${doctype[0].toUpperCase()} ${docnumber}`,
+        doctype,
+        docnumber,
+        title: {},
+        editions: [],
+      })
+    }
+    seriesMap.get(realKey)!.editions.push(ed)
+  }
 
-    if (lang) {
-      // Instance
-      const sourceUrl: string | undefined = yaml.source?.find((s: any) => s.type === 'website')?.content
-      const pdf = resolveLocalPdf(sourceUrl)
-      const inst: PubInstance = {
-        ...base,
-        language: lang,
-        sourceUrl: sourceUrl ?? '',
-        localYamlPath,
-        localPdfPath: pdf.path ? `${BASE_PATH}/pdfs/${pdf.path}` : undefined,
-        fileSize: pdf.size,
-      }
-      instances.set(id, inst)
-    } else {
-      works.set(id, base)
+  // For each series: sort editions (newest first), pick current edition, set title/scope
+  const allSeries = [...seriesMap.values()]
+  for (const s of allSeries) {
+    s.editions.sort((a, b) => b.year - a.year)
+    // currentEdition = most recent in-force, else newest
+    s.currentEdition = s.editions.find(e => e.status === 'in-force') ?? s.editions[0]
+    if (s.currentEdition) {
+      s.title = mergeTitles(s.editions)
+      s.scope = s.currentEdition.scope
+      s.tc = s.currentEdition.tc
+      s.highPriority = s.editions.some(e => e.highPriority)
     }
   }
 
-  // Wire up instances → their parent work
-  for (const inst of instances.values()) {
-    const workId = workIdOf(inst.id)
-    const work = works.get(workId)
-    if (work) {
-      work.instances.push(inst.id)
-    } else {
-      // Synthesize a work from the instance if missing
-      const synthWork: PubWork = {
-        ...inst,
-        instances: [inst.id],
-      }
-      // Drop instance-only fields
-      const { language, sourceUrl, localYamlPath, localPdfPath, fileSize, ...rest } = inst
-      void language; void sourceUrl; void localYamlPath; void localPdfPath; void fileSize
-      works.set(workId, synthWork)
-    }
+  // Sort series: by doctype then docnumber (numeric)
+  allSeries.sort((a, b) => {
+    if (a.doctype !== b.doctype) return a.doctype.localeCompare(b.doctype)
+    return parseInt(a.docnumber) - parseInt(b.docnumber)
+  })
+
+  // byDoctype bucket
+  const byDoctype = {} as Record<Doctype, Series[]>
+  for (const dt of ALL_DOCTYPES) byDoctype[dt] = []
+  for (const s of allSeries) {
+    ;(byDoctype[s.doctype] ??= []).push(s)
   }
 
-  // Wire up parts → series
-  for (const w of works.values()) {
-    if (w.part) {
-      // This is a part work; find parent series by docnumber
-      const parentId = `${w.id.split('-')[0].match(/^[A-Za-z]+(\d+)/)?.[0] ?? ''}-${w.year ?? ''}`
-      // Try relation-based first
-      const viaRelation = w.relations.find(r => r.type === 'partOf' || r.type === 'instanceOf')?.target
-      if (viaRelation) {
-        const parent = [...works.values()].find(x => x.docid === viaRelation)
-        if (parent) {
-          w.parentWorkId = parent.id
-          parent.partWorkIds.push(w.id)
+  // Stats
+  const stats = computeStats(allSeries, parts, instObjs)
+
+  _cached = {
+    series: allSeries,
+    seriesByKey: seriesMap,
+    byDoctype,
+    stats,
+  }
+  return _cached
+}
+
+function extractDocnumber(docid: string): string {
+  const m = docid.match(/\b\d+\b/)
+  return m ? m[0] : ''
+}
+
+function findInstancesFor(
+  work: RawRec,
+  byId: Map<string, RawRec>,
+  byDocid: Map<string, RawRec>,
+  instObjs: Map<string, Instance>,
+): Instance[] {
+  const out: Instance[] = []
+  const seen = new Set<string>()
+  for (const rel of work.relations) {
+    if (rel.type !== 'hasInstance') continue
+    const target = byDocid.get(rel.target)
+    if (!target) continue
+    const inst = instObjs.get(target.id)
+    if (inst && !seen.has(inst.id)) {
+      seen.add(inst.id)
+      out.push(inst)
+    }
+  }
+  return out
+}
+
+function mergeTitles(editions: Edition[]): Partial<Record<Lang, string>> {
+  // Prefer the most recent in-force edition's title; fall back across editions.
+  const sorted = [...editions].sort((a, b) => b.year - a.year)
+  const out: Partial<Record<Lang, string>> = {}
+  for (const ed of sorted) {
+    for (const [lang, val] of Object.entries(ed.title)) {
+      if (!(lang in out) && val) (out as any)[lang] = val
+    }
+    for (const part of ed.parts) {
+      for (const [lang, val] of Object.entries(part.title)) {
+        if (!(lang in out) && val) (out as any)[lang] = val
+      }
+    }
+  }
+  return out
+}
+
+function computeStats(
+  allSeries: Series[],
+  parts: Map<string, Part>,
+  instances: Map<string, Instance>,
+): Dataset['stats'] {
+  const byDoctype = {} as Record<Doctype, number>
+  for (const dt of ALL_DOCTYPES) byDoctype[dt] = 0
+  for (const s of allSeries) byDoctype[s.doctype] = (byDoctype[s.doctype] ?? 0) + 1
+
+  const byStatus = { 'in-force': 0, 'superseded': 0, 'withdrawn': 0, 'draft': 0, 'unknown': 0 } as Record<Status, number>
+  let totalEditions = 0
+  let totalPdfsWithFile = 0
+  const byLanguage: Record<string, number> = {}
+
+  for (const s of allSeries) {
+    for (const ed of s.editions) {
+      totalEditions++
+      byStatus[ed.status] = (byStatus[ed.status] ?? 0) + 1
+      for (const i of ed.instances) {
+        if (i.language) byLanguage[i.language] = (byLanguage[i.language] ?? 0) + 1
+        if (i.localPdfPath) totalPdfsWithFile++
+      }
+      for (const p of ed.parts) {
+        for (const i of p.instances) {
+          if (i.language) byLanguage[i.language] = (byLanguage[i.language] ?? 0) + 1
+          if (i.localPdfPath) totalPdfsWithFile++
         }
       }
     }
   }
 
-  const dataset: Dataset = {
-    works,
-    instances,
-    byDoctype: bucketize(works.values(), w => w.doctype, ALL_DOCTYPES),
-    byStatus: bucketize(works.values(), w => w.status, ['in-force', 'superseded', 'withdrawn', 'draft', 'unknown'] as const),
-    stats: computeStats(works, instances),
-  }
-
-  _cached = dataset
-  return dataset
-}
-
-function tcOf(yaml: any): string | undefined {
-  const c = yaml?.contributor?.find((c: any) => c.role?.includes('author'))
-  const subdiv = c?.organization?.subdivision?.[0]
-  if (!subdiv) return c?.organization?.abbreviation?.content
-  const tc = subdiv.identifier?.find((i: any) => i.type === 'technical-committee')?.content
-  const sc = subdiv.identifier?.find((i: any) => i.type === 'subcommittee')?.content
-  return [tc, sc].filter(Boolean).join('/') || subdiv.name?.[0]?.content
-}
-
-function splitReplaces(relations: Relation[]): { replaces: string[]; replacedBy: string[] } {
-  const replaces: string[] = []
-  const replacedBy: string[] = []
-  for (const r of relations) {
-    if (r.type === 'hasSuccessor' || r.type === 'hasPredecessor' || r.type === 'successorOf' || r.type === 'predecessorOf') {
-      // ambiguous — skip, status.relation covers this
-      continue
-    }
-    if (r.type === 'updatedBy' || r.type === 'revisedBy' || r.type === 'amendedBy' || r.type === 'isRevisedBy' || r.type === 'isUpdatedBy' || r.type === 'isAmendedBy') {
-      replacedBy.push(r.target)
-    }
-    if (r.type === 'updates' || r.type === 'revises' || r.type === 'amends') {
-      replaces.push(r.target)
-    }
-  }
-  return { replaces, replacedBy }
-}
-
-function bucketize<T, K extends string>(
-  items: Iterable<T>,
-  keyFn: (item: T) => K,
-  keys: readonly K[],
-): Record<K, T[]> {
-  const out = {} as Record<K, T[]>
-  for (const k of keys) out[k] = []
-  for (const item of items) {
-    const k = keyFn(item)
-    ;(out[k] ??= []).push(item)
-  }
-  // Sort each bucket by docnumber then year
-  for (const k of keys) {
-    out[k].sort((a, b) => {
-      const an = parseInt((a as PubWork).docnumber) || 0
-      const bn = parseInt((b as PubWork).docnumber) || 0
-      if (an !== bn) return an - bn
-      return ((a as PubWork).year ?? 0) - ((b as PubWork).year ?? 0)
-    })
-  }
-  return out
-}
-
-function computeStats(works: Map<string, PubWork>, instances: Map<string, PubInstance>): Dataset['stats'] {
-  const byDoctype = bucketize(works.values(), w => w.doctype, ALL_DOCTYPES)
-  const byStatus = bucketize(works.values(), w => w.status, ['in-force', 'superseded', 'withdrawn', 'draft', 'unknown'] as const)
-  const byLanguage: Record<string, number> = {}
-  let totalPdfsWithFile = 0
-  for (const inst of instances.values()) {
-    byLanguage[inst.language] = (byLanguage[inst.language] ?? 0) + 1
-    if (inst.localPdfPath) totalPdfsWithFile++
-  }
   return {
-    totalWorks: works.size,
+    totalSeries: allSeries.length,
+    totalEditions,
+    totalParts: parts.size,
     totalInstances: instances.size,
     totalPdfsWithFile,
-    byDoctype: Object.fromEntries(Object.entries(byDoctype).map(([k, v]) => [k, v.length])) as Dataset['stats']['byDoctype'],
-    byStatus: Object.fromEntries(Object.entries(byStatus).map(([k, v]) => [k, v.length])) as Dataset['stats']['byStatus'],
+    byDoctype,
+    byStatus,
     byLanguage,
   }
 }

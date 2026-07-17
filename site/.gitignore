@@ -2,3 +2,8 @@ node_modules/
 dist/
 .astro/
 *.log
+
+# Dev symlinks — created locally for `npm run dev` to serve pdfs/ and data/.
+# In CI, the workflow rsyncs them into dist/ at build time.
+public/pdfs
+public/data

@@ -10,12 +10,7 @@ export async function getStaticPaths() {
 
 const { doctype } = Astro.params as { doctype: Doctype }
 const data = loadDataset()
-const works = (data.byDoctype[doctype] ?? []).sort((a, b) => {
-  const an = parseInt(a.docnumber) || 0
-  const bn = parseInt(b.docnumber) || 0
-  if (an !== bn) return an - bn
-  return (a.year ?? 0) - (b.year ?? 0)
-})
+const series = data.byDoctype[doctype] ?? []
 
 const label = DOCTYPE_LABELS[doctype]
 ---
@@ -27,11 +22,11 @@ const label = DOCTYPE_LABELS[doctype]
         <span class="bp-section-anchor__num">§ {label.plural[0]}</span>
         <span>{label.plural}</span>
         <span class="bp-section-anchor__line"></span>
-        <span class="bp-coord">{works.length} works</span>
+        <span class="bp-coord">{series.length} publications</span>
       </div>
       <h1 class="font-serif text-4xl font-medium tracking-tight mb-3">{label.plural}</h1>
       <p class="text-ink-soft max-w-2xl">
-        {works.length.toLocaleString('en-US')} {label.singular.toLowerCase()} publications in this category.
+        {series.length.toLocaleString('en-US')} {label.singular.toLowerCase()} publications.
       </p>
       <a href={`${BASE_PATH}/browse/`} class="text-sm text-accent hover:underline mt-3 inline-block">← Back to all publications</a>
     </div>
@@ -40,9 +35,7 @@ const label = DOCTYPE_LABELS[doctype]
   <section class="px-8 py-6">
     <div class="max-w-7xl mx-auto">
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {works.map(w => (
-          <PubCard work={w} instanceCount={w.instances.length} />
-        ))}
+        {series.map(s => <PubCard series={s} />)}
       </div>
     </div>
   </section>

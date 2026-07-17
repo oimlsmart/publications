@@ -1,18 +1,18 @@
 ---
-import type { PubWork } from '../data/types'
+import type { Series } from '../data/types'
 import { BASE_PATH } from '../data/publications'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
 
 interface Props {
-  work: PubWork
-  /** Number of language instances available as PDFs. */
-  instanceCount?: number
+  series: Series
 }
 
-const { work, instanceCount = 0 } = Astro.props
-const title = work.title.eng ?? work.title.fra ?? work.docid
-const url = `${BASE_PATH}/pub/${work.slug}/`
+const { series } = Astro.props
+const title = series.title.eng ?? series.title.fra ?? series.docid
+const url = `${BASE_PATH}/pub/${series.slug}/`
+const langs = series.currentEdition?.languages() ?? []
+const totalPdfs = series.editions.reduce((sum, ed) => sum + ed.instances.length + ed.parts.reduce((s, p) => s + p.instances.length, 0), 0)
 ---
 
 <a
@@ -20,22 +20,25 @@ const url = `${BASE_PATH}/pub/${work.slug}/`
   class="block border border-rule rounded-sm p-4 bg-paper-soft dark:bg-paper hover:border-accent hover:shadow-md transition-all"
 >
   <div class="flex items-center gap-2 mb-2 flex-wrap">
-    <DoctypeChip doctype={work.doctype} />
-    <span class="font-mono text-xs text-ink-soft">{work.docid}</span>
-    <StatusBadge status={work.status} replacedBy={work.replacedBy} />
-    {work.highPriority && (
+    <DoctypeChip doctype={series.doctype} />
+    <span class="font-mono text-xs text-ink-soft">{series.docid}</span>
+    {series.currentEdition && (
+      <StatusBadge status={series.currentEdition.status} />
+    )}
+    {series.highPriority && (
       <span class="px-2 py-0.5 text-xs font-mono uppercase border border-amber-400 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded-sm">
         ★ High priority
       </span>
     )}
   </div>
   <h3 class="font-serif text-lg leading-snug mb-1">{title}</h3>
-  {work.scope && (
-    <p class="text-sm text-ink-soft line-clamp-2">{work.scope}</p>
+  {series.scope && (
+    <p class="text-sm text-ink-soft line-clamp-2">{series.scope}</p>
   )}
   <div class="mt-3 flex items-center gap-4 text-xs text-ink-soft font-mono">
-    {work.year && <span>{work.year}</span>}
-    {instanceCount > 0 && <span>{instanceCount} language{instanceCount > 1 ? 's' : ''}</span>}
-    {work.tc && <span>{work.tc}</span>}
+    {series.editions.length > 0 && <span>{series.editions.length} edition{series.editions.length > 1 ? 's' : ''}</span>}
+    {langs.length > 0 && <span>{langs.length} lang</span>}
+    {totalPdfs > 0 && <span>{totalPdfs} PDF{totalPdfs > 1 ? 's' : ''}</span>}
+    {series.tc && <span>{series.tc}</span>}
   </div>
 </a>

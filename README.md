@@ -1,97 +1,59 @@
-# OIML Publications — data and PDFs
+# OIML Publications — data, PDFs, and browser
 
-This repository is a public archive of OIML (International Organization
-of Legal Metrology) publications. It mirrors the bibliographic data and
-PDFs of every OIML publication that OIML publishes as a downloadable
-PDF on `oiml.org`, except for the OIML Bulletin (which is too large to
-mirror here and lives in [`oimlsmart/bulletin-data`](https://github.com/oimlsmart/bulletin-data)).
-
-It also hosts a static Astro site that lets you browse, search, and
-preview every publication. The site is published at
-**<https://oimlsmart.github.io/publications/>**.
+Public archive of OIML publications: bibliographic data, PDFs, and a
+static Astro site for browsing them.
 
 ## What's here
 
 ```
-data/             5,707 relaton YAML files (22 MB) — bibliographic records
-pdfs/             940 PDF files (751 MB) — the actual publications, mirrored from oiml.org
-site/             Astro static-site source for the publications browser
-scripts/          sync-from-relaton-data-oiml.sh — re-mirror from upstream
+relaton-data-oiml/   git submodule — bibliographic YAML (5,707 files)
+                     from relaton/relaton-data-oiml. Data IS committed
+                     in that repo; PDFs are gitignored there.
+pdfs/                890 PDF files (697 MB), mirrored from oiml.org via
+                     relaton-data-oiml's crawler. Excludes the OIML
+                     Bulletin (too large — lives in
+                     oimlsmart/bulletin-data instead).
+site/                Astro 7 static site that reads relaton-data-oiml/
+                     and pdfs/ at build time.
+scripts/             sync helpers.
+LICENSE              data: ODC-BY 1.0; PDFs: © OIML mirrored for
+                     public access; site code: MIT.
 ```
 
-### Publication types
-
-| Type | Count | Examples |
-|------|-------|----------|
-| Recommendations (R) | 973 | R 60 Load cells, R 76 Non-automatic weighing instruments |
-| Basic Publications (B) | 155 | B 6 Directives for technical work, B 18 OIML-CS |
-| Documents (D) | 153 | D 1 National metrology systems, D 11 Electronic instruments |
-| Guides (G) | 90 | G 1-100 GUM, G 19 Measurement uncertainty |
-| Translations | 127 | Arabic / Serbian / Ukrainian / Chinese editions |
-| Expert Reports (E) | 34 | E 1, E 2, … |
-| Seminar Reports (S) | 21 | S 1 – S 7 |
-| Vocabularies (V) | 20 | V 1 VIML, V 2 VIM |
-
-Bulletins (4,134 records) are excluded.
-
-## Data sources
-
-The bibliographic data under `data/` is mirrored verbatim from
-[`relaton/relaton-data-oiml`](https://github.com/relaton/relaton-data-oiml),
-the canonical relaton dataset for OIML publications. Each YAML file is
-a single record (work, instance, or translation) and follows the
-[relaton-bib](https://github.com/relaton/relaton-bib) schema.
-
-The PDFs under `pdfs/` are mirrored from the same source, which in turn
-fetches them from `oiml.org` and `oiml.caco3consulting.com`.
-
-## Re-syncing from upstream
+## Updating the data
 
 ```sh
-scripts/sync-from-relaton-data-oiml.sh /path/to/relaton-data-oiml
+# Update the submodule (latest relaton data):
+git submodule update --remote relaton-data-oiml
+
+# Re-mirror PDFs from a local relaton-data-oiml checkout:
+scripts/sync-pdfs.sh /path/to/relaton-data-oiml
 ```
 
-This rsyncs `data/` and `pdfs/` (excluding bulletins) from a local
-checkout of `relaton-data-oiml`. Run it whenever upstream changes.
+## Running the site locally
 
-## Licensing
+```sh
+cd site
+npm install
+npm run dev          # http://localhost:4321/publications/
+```
 
-- **Bibliographic data** (`data/*.yaml`): mirrored from
-  `relaton/relaton-data-oiml`. Open data; attribution to OIML.
-- **PDFs** (`pdfs/*.pdf`): © OIML. These are publicly accessible
-  documents that OIML distributes free of charge on
-  <https://www.oiml.org>. They are mirrored here for archival,
-  searchability, and machine readability. For any reuse beyond
-  personal reference, contact OIML (<https://www.oiml.org>) for
-  permission.
-- **Site code** (`site/`, `scripts/`): MIT.
+See [`site/README.md`](site/README.md) for more.
 
-## The browser site
+## Deployment
 
-The static site under `site/` is built with Astro 7, Tailwind 4, and
-pdf.js. It borrows the "Metrological Blueprint" design system from
-[`oimlsmart/oimlsmart.github.io`](https://github.com/oimlsmart/oimlsmart.github.io).
+GitHub Actions workflow at `.github/workflows/build.yml` builds the
+site on push to `main` and deploys to GitHub Pages at
+**<https://www.oimlsmart.org/publications/>**.
 
-Features:
-
-- Browse all 1,573 work-level publications with filters by type, status,
-  language, year, technical committee.
-- Work-level pages (`/pub/<slug>/`) show all editions, parts, and
-  language instances of a publication.
-- Instance-level pages (`/pub/<slug>/<edition>/`) embed a pdf.js preview
-  alongside the relaton metadata.
-- Cross-linking between editions (superseded → current), parts ↔ series,
-  and translations.
-- Search via [Pagefind](https://pagefind.app).
-- Machine-readable exports: raw YAML, normalized JSON, BibTeX, Schema.org
-  JSON-LD, OpenGraph + citation meta tags.
-
-See [`site/README.md`](site/README.md) for development instructions.
+The workflow:
+1. Checks out the repo WITH submodules
+2. Builds the Astro site
+3. rsyncs `pdfs/` and `relaton-data-oiml/data/` into `site/dist/`
+4. Uploads the artifact and deploys to GitHub Pages
 
 ## See also
 
-- [`relaton/relaton-data-oiml`](https://github.com/relaton/relaton-data-oiml) — canonical bibliographic data and upstream PDF mirror.
+- [`relaton/relaton-data-oiml`](https://github.com/relaton/relaton-data-oiml) — canonical bibliographic data upstream.
 - [`oimlsmart/publications-private`](https://github.com/oimlsmart/publications-private) — internal pipeline that produces OCR, Glossarist term datasets, and Metanorma AsciiDoc from these PDFs.
 - [`oimlsmart/oimlsmart.github.io`](https://github.com/oimlsmart/oimlsmart.github.io) — main OIML SMART site.
-- [`oimlsmart/vocab`](https://github.com/oimlsmart/vocab) — OIML vocabulary (V 1 / V 2) datasets.
-- [`oimlsmart/bulletin-data`](https://github.com/oimlsmart/bulletin-data) — OIML Bulletin archive.

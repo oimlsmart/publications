@@ -1,0 +1,3 @@
+[submodule "relaton-data-oiml"]
+	path = relaton-data-oiml
+	url = https://github.com/relaton/relaton-data-oiml.git

@@ -7,10 +7,10 @@ const data = loadDataset()
 const stats = data.stats
 
 const heroStats = [
-  { label: 'Publications', value: stats.totalWorks, format: 'comma' },
+  { label: 'Publications', value: stats.totalSeries, format: 'comma' },
+  { label: 'Editions', value: stats.totalEditions, format: 'comma' },
   { label: 'PDFs mirrored', value: stats.totalPdfsWithFile, format: 'comma' },
   { label: 'Languages', value: Object.keys(stats.byLanguage).length, format: 'int' },
-  { label: 'In force', value: stats.byStatus['in-force'] ?? 0, format: 'comma' },
 ]
 
 const fmt = (n: number, format: string) =>
@@ -74,35 +74,14 @@ const fmt = (n: number, format: string) =>
     </div>
   </section>
 
-  <section class="px-8 py-12 border-b border-rule">
-    <div class="max-w-6xl mx-auto">
-      <h2 class="font-serif text-2xl mb-2">Current status</h2>
-      <p class="text-ink-soft mb-6">Most publications are in force; some have been superseded or withdrawn.</p>
-      <div class="grid sm:grid-cols-3 gap-4">
-        <a href={`${BASE_PATH}/browse/?status=in-force`} class="border border-green-300 dark:border-green-800 p-5 rounded-sm hover:shadow-md transition-all">
-          <div class="text-3xl font-serif text-green-800 dark:text-green-200">{stats.byStatus['in-force'] ?? 0}</div>
-          <div class="text-sm text-ink-soft mt-1">In force</div>
-        </a>
-        <a href={`${BASE_PATH}/browse/?status=superseded`} class="border border-amber-300 dark:border-amber-800 p-5 rounded-sm hover:shadow-md transition-all">
-          <div class="text-3xl font-serif text-amber-800 dark:text-amber-200">{stats.byStatus['superseded'] ?? 0}</div>
-          <div class="text-sm text-ink-soft mt-1">Superseded</div>
-        </a>
-        <a href={`${BASE_PATH}/browse/?status=withdrawn`} class="border border-red-300 dark:border-red-800 p-5 rounded-sm hover:shadow-md transition-all">
-          <div class="text-3xl font-serif text-red-800 dark:text-red-200">{stats.byStatus['withdrawn'] ?? 0}</div>
-          <div class="text-sm text-ink-soft mt-1">Withdrawn</div>
-        </a>
-      </div>
-    </div>
-  </section>
-
   <section class="px-8 py-12">
     <div class="max-w-6xl mx-auto">
       <h2 class="font-serif text-2xl mb-2">Machine-readable</h2>
       <p class="text-ink-soft mb-6">Every publication record is available in multiple formats.</p>
       <ul class="space-y-2 text-sm font-mono">
         <li><code>/data/&lt;file&gt;.yaml</code> — raw relaton YAML (the source of truth)</li>
-        <li><code>{BASE_PATH}/api/publications.json</code> — compact JSON index of all works</li>
-        <li><code>{BASE_PATH}/api/publications/&lt;slug&gt;</code> — per-work JSON</li>
+        <li><code>{BASE_PATH}/api/publications.json</code> — compact JSON index of all publications</li>
+        <li><code>{BASE_PATH}/api/publications/&lt;slug&gt;</code> — per-pub JSON-LD record</li>
         <li><code>&lt;link rel="alternate" type="application/yaml"&gt;</code> — Schema.org JSON-LD on every pub page</li>
       </ul>
     </div>

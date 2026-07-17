@@ -8,7 +8,6 @@ interface Props {
 
 const { pdfPath } = Astro.props
 const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
-const workerUrl = `${BASE_PATH}/pdf.worker.min.mjs`
 ---
 
 <div class="border border-rule rounded-sm bg-paper-soft dark:bg-paper overflow-hidden">
@@ -20,21 +19,21 @@ const workerUrl = `${BASE_PATH}/pdf.worker.min.mjs`
     <a href={pdfUrl} download class="text-xs font-mono text-accent hover:underline">⬇ Download PDF</a>
   </div>
   <div class="overflow-auto bg-gray-200 dark:bg-gray-900" style="height: 75vh">
-    <canvas id="pdf-canvas" class="mx-auto block shadow-lg" data-pdf-url={pdfUrl} data-worker-url={workerUrl}></canvas>
+    <canvas id="pdf-canvas" class="mx-auto block shadow-lg" data-pdf-url={pdfUrl}></canvas>
   </div>
   <p id="pdf-loading" class="px-3 py-2 text-sm text-ink-soft font-mono">Loading PDF…</p>
   <p id="pdf-error" class="hidden px-3 py-2 text-sm text-red-700 dark:text-red-300 font-mono"></p>
 </div>
 
-<script type="module">
+<script>
   import * as pdfjsLib from 'pdfjs-dist'
+  // Vite resolves the worker as a static asset URL
+  import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
 
-  const canvas = document.getElementById('pdf-canvas') as HTMLCanvasElement
+  const canvas = document.getElementById('pdf-canvas') as HTMLCanvasElement | null
   if (canvas) {
     const url = canvas.dataset.pdfUrl!
-    const workerUrl = canvas.dataset.workerUrl!
-    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
-
     const prev = document.getElementById('pdf-prev') as HTMLButtonElement
     const next = document.getElementById('pdf-next') as HTMLButtonElement
     const pageLabel = document.getElementById('pdf-page') as HTMLElement
@@ -53,7 +52,7 @@ const workerUrl = `${BASE_PATH}/pdf.worker.min.mjs`
       } catch (e: any) {
         loading.classList.add('hidden')
         error.classList.remove('hidden')
-        error.textContent = `Failed to load PDF: ${e.message ?? e}`
+        error.textContent = `Failed to load PDF: ${e?.message ?? e}`
       }
     }
 
@@ -67,15 +66,15 @@ const workerUrl = `${BASE_PATH}/pdf.worker.min.mjs`
       const page = await doc.getPage(pageNum)
       const container = canvas.parentElement!
       const desiredWidth = container.clientWidth - 24
-      const viewport = page.getViewport({ scale: 1 })
-      const scale = Math.min(2, Math.max(0.3, desiredWidth / viewport.width))
+      const viewport0 = page.getViewport({ scale: 1 })
+      const scale = Math.min(2, Math.max(0.3, desiredWidth / viewport0.width))
+      const viewport = page.getViewport({ scale })
       const ctx = canvas.getContext('2d')!
-      const v2 = page.getViewport({ scale })
-      canvas.width = v2.width
-      canvas.height = v2.height
-      canvas.style.width = v2.width + 'px'
-      canvas.style.height = v2.height + 'px'
-      await page.render({ canvasContext: ctx, viewport: v2 }).promise
+      canvas.width = viewport.width
+      canvas.height = viewport.height
+      canvas.style.width = viewport.width + 'px'
+      canvas.style.height = viewport.height + 'px'
+      await page.render({ canvasContext: ctx, viewport }).promise
     }
 
     prev.addEventListener('click', () => render(currentPage - 1))

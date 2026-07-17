@@ -3,23 +3,44 @@ import { loadDataset, BASE_PATH } from '../../data/publications.js'
 
 export const GET: APIRoute = () => {
   const data = loadDataset()
-  const records = [...data.works.values()].map(w => ({
-    id: w.id,
-    slug: w.slug,
-    url: `${BASE_PATH}/pub/${w.slug}/`,
-    docid: w.docid,
-    doctype: w.doctype,
-    docnumber: w.docnumber,
-    year: w.year,
-    status: w.status,
-    title: w.title.eng ?? w.title.fra ?? w.docid,
-    scope: w.scope,
-    languages: w.instances
-      .map(id => data.instances.get(id)?.language)
-      .filter(Boolean),
-    tc: w.tc,
-    doi: w.doi,
-    highPriority: w.highPriority,
+  const records = data.series.map(s => ({
+    id: s.slug,
+    slug: s.slug,
+    url: `${BASE_PATH}/pub/${s.slug}/`,
+    docid: s.docid,
+    doctype: s.doctype,
+    docnumber: s.docnumber,
+    title: s.title.eng ?? s.title.fra ?? s.docid,
+    scope: s.scope,
+    tc: s.tc,
+    highPriority: s.highPriority,
+    editions: s.editions.map(ed => ({
+      id: ed.slug,
+      slug: ed.slug,
+      url: `${BASE_PATH}/pub/${ed.slug}/`,
+      docid: ed.docid,
+      year: ed.year,
+      status: ed.status,
+      doi: ed.doi,
+      parts: ed.parts.map(p => ({
+        id: p.slug,
+        slug: p.slug,
+        url: `${BASE_PATH}/pub/${p.slug}/`,
+        docid: p.docid,
+        partNumber: p.partNumber,
+        title: p.title.eng ?? p.title.fra ?? p.docid,
+        instances: p.instances.map(i => ({
+          id: i.slug, slug: i.slug, url: `${BASE_PATH}/pub/${i.slug}/`,
+          docid: i.docid, language: i.language,
+          pdf: i.localPdfPath, size: i.fileSize,
+        })),
+      })),
+      instances: ed.instances.map(i => ({
+        id: i.slug, slug: i.slug, url: `${BASE_PATH}/pub/${i.slug}/`,
+        docid: i.docid, language: i.language,
+        pdf: i.localPdfPath, size: i.fileSize,
+      })),
+    })),
   }))
   return new Response(
     JSON.stringify({
