@@ -1,5 +1,7 @@
 ---
 import { BASE_PATH } from '../data/publications'
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 
 interface Props {
   /** Path under pdfs/, e.g. 'r60_2021/r060-e21.pdf'. */
@@ -27,9 +29,6 @@ const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
 
 <script>
   import * as pdfjsLib from 'pdfjs-dist'
-  // Vite resolves the worker as a static asset URL
-  import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
 
   const canvas = document.getElementById('pdf-canvas') as HTMLCanvasElement | null
   if (canvas) {
@@ -39,6 +38,11 @@ const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
     const pageLabel = document.getElementById('pdf-page') as HTMLElement
     const loading = document.getElementById('pdf-loading') as HTMLElement
     const error = document.getElementById('pdf-error') as HTMLElement
+
+    // Use a CDN-hosted worker that matches the installed pdf.js version.
+    // This avoids bundler path resolution issues with module workers.
+    const workerVersion = pdfjsLib.version
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${workerVersion}/build/pdf.worker.min.mjs`
 
     let docPromise: Promise<any> | null = null
     let currentPage = 1
