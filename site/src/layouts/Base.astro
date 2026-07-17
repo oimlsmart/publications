@@ -39,6 +39,11 @@ const desc = description ?? SITE.description
       document.documentElement.classList.add('dark')
     }
   </script>
+  <style is:global>
+    .logo-dark { display: none; }
+    .dark .logo-light { display: none; }
+    .dark .logo-dark { display: inline-block; }
+  </style>
   <slot name="head" />
 </head>
 <body class="min-h-screen bg-paper-soft dark:bg-paper-deep text-ink dark:text-ink-light antialiased">
