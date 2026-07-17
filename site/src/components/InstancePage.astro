@@ -52,8 +52,8 @@ const workSlug = (p ?? ed).slug
     })} />
   </slot>
 
-  <section class="px-8 pt-10 pb-6 border-b border-rule">
-    <div class="max-w-7xl mx-auto">
+  <section class="relative px-8 pt-10 pb-6 border-b border-rule bp-grid bp-noise">
+    <div class="max-w-7xl mx-auto relative z-10">
       <a href={`${BASE_PATH}/pub/${workSlug}/`} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {parent.docid}</a>
       <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
         <DoctypeChip doctype={series.doctype} />

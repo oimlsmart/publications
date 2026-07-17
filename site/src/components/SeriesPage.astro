@@ -29,8 +29,8 @@ const langs = series.currentEdition?.languages() ?? []
     })} />
   </slot>
 
-  <section class="px-8 pt-12 pb-8 border-b border-rule">
-    <div class="max-w-6xl mx-auto">
+  <section class="relative px-8 pt-12 pb-8 border-b border-rule bp-grid bp-grid--major bp-noise">
+    <div class="max-w-6xl mx-auto relative z-10">
       <div class="bp-section-anchor mb-3">
         <span class="bp-section-anchor__num">§ {series.docnumber}</span>
         <span>{series.doctype}</span>
