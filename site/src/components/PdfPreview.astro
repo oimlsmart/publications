@@ -1,7 +1,5 @@
 ---
 import { BASE_PATH } from '../data/publications'
-import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 
 interface Props {
   /** Path under pdfs/, e.g. 'r60_2021/r060-e21.pdf'. */
@@ -27,63 +25,70 @@ const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
   <p id="pdf-error" class="hidden px-3 py-2 text-sm text-red-700 dark:text-red-300 font-mono"></p>
 </div>
 
-<script>
-  import * as pdfjsLib from 'pdfjs-dist'
+<script is:inline define={{ pdfUrl }}>
+  (function () {
+    var PDFJS_VERSION = '4.8.69';
+    var pdfjsSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VERSION + '/build/pdf.min.mjs';
+    var workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VERSION + '/build/pdf.worker.min.mjs';
 
-  const canvas = document.getElementById('pdf-canvas') as HTMLCanvasElement | null
-  if (canvas) {
-    const url = canvas.dataset.pdfUrl!
-    const prev = document.getElementById('pdf-prev') as HTMLButtonElement
-    const next = document.getElementById('pdf-next') as HTMLButtonElement
-    const pageLabel = document.getElementById('pdf-page') as HTMLElement
-    const loading = document.getElementById('pdf-loading') as HTMLElement
-    const error = document.getElementById('pdf-error') as HTMLElement
+    var canvas = document.getElementById('pdf-canvas');
+    if (!canvas) return;
+    var url = pdfUrl;
+    var prevBtn = document.getElementById('pdf-prev');
+    var nextBtn = document.getElementById('pdf-next');
+    var pageLabel = document.getElementById('pdf-page');
+    var loading = document.getElementById('pdf-loading');
+    var errorEl = document.getElementById('pdf-error');
 
-    // Use a CDN-hosted worker that matches the installed pdf.js version.
-    // This avoids bundler path resolution issues with module workers.
-    const workerVersion = pdfjsLib.version
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${workerVersion}/build/pdf.worker.min.mjs`
+    var docPromise = null;
+    var currentPage = 1;
 
-    let docPromise: Promise<any> | null = null
-    let currentPage = 1
+    import(pdfjsSrc).then(function (pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
-    async function load() {
-      try {
-        docPromise = docPromise ?? pdfjsLib.getDocument(url).promise
-        const doc = await docPromise
-        await render(currentPage)
-        loading.classList.add('hidden')
-      } catch (e: any) {
-        loading.classList.add('hidden')
-        error.classList.remove('hidden')
-        error.textContent = `Failed to load PDF: ${e?.message ?? e}`
+      function load() {
+        docPromise = docPromise || pdfjsLib.getDocument(url).promise;
+        docPromise.then(function (doc) {
+          render(currentPage).then(function () {
+            loading.classList.add('hidden');
+          });
+        }).catch(function (e) {
+          loading.classList.add('hidden');
+          errorEl.classList.remove('hidden');
+          errorEl.textContent = 'Failed to load PDF: ' + (e && e.message ? e.message : e);
+        });
       }
-    }
 
-    async function render(pageNum: number) {
-      if (!docPromise) return
-      const doc = await docPromise
-      if (pageNum < 1) pageNum = 1
-      if (pageNum > doc.numPages) pageNum = doc.numPages
-      currentPage = pageNum
-      pageLabel.textContent = `${pageNum} / ${doc.numPages}`
-      const page = await doc.getPage(pageNum)
-      const container = canvas.parentElement!
-      const desiredWidth = container.clientWidth - 24
-      const viewport0 = page.getViewport({ scale: 1 })
-      const scale = Math.min(2, Math.max(0.3, desiredWidth / viewport0.width))
-      const viewport = page.getViewport({ scale })
-      const ctx = canvas.getContext('2d')!
-      canvas.width = viewport.width
-      canvas.height = viewport.height
-      canvas.style.width = viewport.width + 'px'
-      canvas.style.height = viewport.height + 'px'
-      await page.render({ canvasContext: ctx, viewport }).promise
-    }
+      function render(pageNum) {
+        return docPromise.then(function (doc) {
+          if (pageNum < 1) pageNum = 1;
+          if (pageNum > doc.numPages) pageNum = doc.numPages;
+          currentPage = pageNum;
+          pageLabel.textContent = pageNum + ' / ' + doc.numPages;
+          return doc.getPage(pageNum).then(function (page) {
+            var container = canvas.parentElement;
+            var desiredWidth = container.clientWidth - 24;
+            var viewport0 = page.getViewport({ scale: 1 });
+            var scale = Math.min(2, Math.max(0.3, desiredWidth / viewport0.width));
+            var viewport = page.getViewport({ scale: scale });
+            var ctx = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            canvas.style.width = viewport.width + 'px';
+            canvas.style.height = viewport.height + 'px';
+            return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+          });
+        });
+      }
 
-    prev.addEventListener('click', () => render(currentPage - 1))
-    next.addEventListener('click', () => render(currentPage + 1))
+      prevBtn.addEventListener('click', function () { render(currentPage - 1); });
+      nextBtn.addEventListener('click', function () { render(currentPage + 1); });
 
-    load()
-  }
+      load();
+    }).catch(function (e) {
+      loading.classList.add('hidden');
+      errorEl.classList.remove('hidden');
+      errorEl.textContent = 'Failed to load PDF viewer: ' + (e && e.message ? e.message : e);
+    });
+  })();
 </script>
