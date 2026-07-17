@@ -34,10 +34,22 @@ import { BASE_PATH } from '../data/publications'
       if (!el) return;
       var basePath = el.dataset.basePath || '';
       var initialQuery = new URLSearchParams(window.location.search).get('q') || '';
-      var pfJs = basePath + '/pagefind/pagefind-ui.js';
 
-      import(pfJs).then(function (mod) {
-        new mod.PagefindUI({
+      // Pagefind UI is an IIFE that attaches to window.PagefindUI —
+      // load it via a script tag, not import().
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = basePath + '/pagefind/pagefind-ui.css';
+      document.head.appendChild(link);
+
+      var script = document.createElement('script');
+      script.src = basePath + '/pagefind/pagefind-ui.js';
+      script.onload = function () {
+        if (!window.PagefindUI) {
+          el.innerHTML = '<p class="text-sm text-red-700 font-mono p-4">PagefindUI not found after script load.</p>';
+          return;
+        }
+        new window.PagefindUI({
           element: '#search',
           showSubResults: true,
           showImages: false,
@@ -60,9 +72,11 @@ import { BASE_PATH } from '../data/publications'
             setTimeout(poll, 20);
           })();
         }
-      }).catch(function (e) {
-        el.innerHTML = '<p class="text-sm text-red-700 font-mono p-4">Search failed to load: ' + (e && e.message ? e.message : e) + '</p>';
-      });
+      };
+      script.onerror = function () {
+        el.innerHTML = '<p class="text-sm text-red-700 font-mono p-4">Failed to load search script.</p>';
+      };
+      document.head.appendChild(script);
     })();
   </script>
 </Base>

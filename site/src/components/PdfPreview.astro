@@ -16,30 +16,19 @@ const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
     <span id="pdf-page" class="font-mono text-xs">1 / —</span>
     <button id="pdf-next" class="px-2 py-1 border border-rule rounded-sm hover:bg-paper-soft dark:hover:bg-paper">→</button>
     <span class="flex-1"></span>
-    <a href={pdfUrl} download class="text-xs font-mono text-accent hover:underline">⬇ Download PDF</a>
+    <a href={`${BASE_PATH}/pdfs/${pdfPath}`} download class="text-xs font-mono text-accent hover:underline">⬇ Download PDF</a>
   </div>
   <div class="overflow-auto bg-gray-200 dark:bg-gray-900" style="height: 75vh">
-    <canvas id="pdf-canvas" class="mx-auto block shadow-lg" data-pdf-url={pdfUrl}></canvas>
+    <canvas id="pdf-canvas" class="mx-auto block shadow-lg" data-pdf-url={`${BASE_PATH}/pdfs/${pdfPath}`}></canvas>
   </div>
   <p id="pdf-loading" class="px-3 py-2 text-sm text-ink-soft font-mono">Loading PDF…</p>
   <p id="pdf-error" class="hidden px-3 py-2 text-sm text-red-700 dark:text-red-300 font-mono"></p>
 </div>
 
+<script is:inline src={`${BASE_PATH}/pdfjs/pdf.min.js`}></script>
+
 <script is:inline>
   (function () {
-    // Polyfill Promise.withResolvers for older Safari/Chrome
-    if (typeof Promise.withResolvers === 'undefined') {
-      Promise.withResolvers = function () {
-        var resolve, reject;
-        var promise = new Promise(function (res, rej) { resolve = res; reject = rej; });
-        return { promise: promise, resolve: resolve, reject: reject };
-      };
-    }
-
-    var PDFJS_VERSION = '4.8.69';
-    var pdfjsSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VERSION + '/build/pdf.min.mjs';
-    var workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VERSION + '/build/pdf.worker.min.mjs';
-
     var canvas = document.getElementById('pdf-canvas');
     if (!canvas) return;
     var url = canvas.dataset.pdfUrl;
@@ -49,55 +38,58 @@ const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
     var loading = document.getElementById('pdf-loading');
     var errorEl = document.getElementById('pdf-error');
 
+    // Set worker source to the locally hosted file
+    pdfjsLib.GlobalWorkerOptions.workerSrc = document.querySelector('script[src*="pdf.min.js"]').src.replace('pdf.min.js', 'pdf.worker.min.js');
+
     var docPromise = null;
     var currentPage = 1;
 
-    import(pdfjsSrc).then(function (pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-
-      function load() {
-        docPromise = docPromise || pdfjsLib.getDocument(url).promise;
-        docPromise.then(function (doc) {
-          render(currentPage).then(function () {
-            loading.classList.add('hidden');
-          });
-        }).catch(function (e) {
+    function load() {
+      docPromise = pdfjsLib.getDocument(url).promise;
+      docPromise.then(function (doc) {
+        render(currentPage).then(function () {
           loading.classList.add('hidden');
-          errorEl.classList.remove('hidden');
-          errorEl.textContent = 'Failed to load PDF: ' + (e && e.message ? e.message : e);
         });
-      }
+      }).catch(function (e) {
+        loading.classList.add('hidden');
+        errorEl.classList.remove('hidden');
+        errorEl.textContent = 'Failed to load PDF: ' + (e && e.message ? e.message : e);
+      });
+    }
 
-      function render(pageNum) {
-        return docPromise.then(function (doc) {
-          if (pageNum < 1) pageNum = 1;
-          if (pageNum > doc.numPages) pageNum = doc.numPages;
-          currentPage = pageNum;
-          pageLabel.textContent = pageNum + ' / ' + doc.numPages;
-          return doc.getPage(pageNum).then(function (page) {
-            var container = canvas.parentElement;
-            var desiredWidth = container.clientWidth - 24;
-            var viewport0 = page.getViewport({ scale: 1 });
-            var scale = Math.min(2, Math.max(0.3, desiredWidth / viewport0.width));
-            var viewport = page.getViewport({ scale: scale });
-            var ctx = canvas.getContext('2d');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            canvas.style.width = viewport.width + 'px';
-            canvas.style.height = viewport.height + 'px';
-            return page.render({ canvasContext: ctx, viewport: viewport }).promise;
-          });
+    function render(pageNum) {
+      return docPromise.then(function (doc) {
+        if (pageNum < 1) pageNum = 1;
+        if (pageNum > doc.numPages) pageNum = doc.numPages;
+        currentPage = pageNum;
+        pageLabel.textContent = pageNum + ' / ' + doc.numPages;
+        return doc.getPage(pageNum).then(function (page) {
+          var container = canvas.parentElement;
+          var desiredWidth = container.clientWidth - 24;
+          var viewport0 = page.getViewport({ scale: 1 });
+          var scale = Math.min(2, Math.max(0.3, desiredWidth / viewport0.width));
+          var viewport = page.getViewport({ scale: scale });
+          var ctx = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.style.width = viewport.width + 'px';
+          canvas.style.height = viewport.height + 'px';
+          return page.render({ canvasContext: ctx, viewport: viewport });
         });
+      });
+    }
+
+    prevBtn.addEventListener('click', function () { render(currentPage - 1); });
+    nextBtn.addEventListener('click', function () { render(currentPage + 1); });
+
+    // Wait for pdf.js to be loaded (script tag above)
+    function waitForPdfJs() {
+      if (typeof pdfjsLib !== 'undefined') {
+        load();
+      } else {
+        setTimeout(waitForPdfJs, 50);
       }
-
-      prevBtn.addEventListener('click', function () { render(currentPage - 1); });
-      nextBtn.addEventListener('click', function () { render(currentPage + 1); });
-
-      load();
-    }).catch(function (e) {
-      loading.classList.add('hidden');
-      errorEl.classList.remove('hidden');
-      errorEl.textContent = 'Failed to load PDF viewer: ' + (e && e.message ? e.message : e);
-    });
+    }
+    waitForPdfJs();
   })();
 </script>
