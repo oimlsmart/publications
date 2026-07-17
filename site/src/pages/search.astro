@@ -1,8 +1,6 @@
 ---
 import Base from '../layouts/Base.astro'
 import { BASE_PATH } from '../data/publications'
-
-const q = (Astro.url.searchParams.get('q') ?? '').trim()
 ---
 
 <Base title="Search" currentPath="/search">
@@ -26,38 +24,45 @@ const q = (Astro.url.searchParams.get('q') ?? '').trim()
   <section class="px-8 py-8">
     <div class="max-w-4xl mx-auto">
       <link rel="stylesheet" href={`${BASE_PATH}/pagefind/pagefind-ui.css`} />
-      <div id="search" data-q={q}></div>
+      <div id="search" data-base-path={BASE_PATH}></div>
     </div>
   </section>
 
-  <script is:inline define={{ BASE_PATH, q }}>
-    (async function () {
+  <script is:inline>
+    (function () {
       var el = document.getElementById('search');
       if (!el) return;
-      var pfJs = BASE_PATH + '/pagefind/pagefind-ui.js';
-      var mod = await import(pfJs);
-      new mod.PagefindUI({
-        element: '#search',
-        showSubResults: true,
-        showImages: false,
-        translations: {
-          placeholder: 'Search publications…',
-          zero_results: 'No matching publications found.',
-        },
+      var basePath = el.dataset.basePath || '';
+      var initialQuery = new URLSearchParams(window.location.search).get('q') || '';
+      var pfJs = basePath + '/pagefind/pagefind-ui.js';
+
+      import(pfJs).then(function (mod) {
+        new mod.PagefindUI({
+          element: '#search',
+          showSubResults: true,
+          showImages: false,
+          translations: {
+            placeholder: 'Search publications…',
+            zero_results: 'No matching publications found.',
+          },
+        });
+
+        if (initialQuery) {
+          var attempts = 0;
+          (function poll() {
+            if (++attempts > 50) return;
+            var input = document.querySelector('#search input[type="search"]');
+            if (input) {
+              input.value = initialQuery;
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              return;
+            }
+            setTimeout(poll, 20);
+          })();
+        }
+      }).catch(function (e) {
+        el.innerHTML = '<p class="text-sm text-red-700 font-mono p-4">Search failed to load: ' + (e && e.message ? e.message : e) + '</p>';
       });
-      if (q) {
-        var attempts = 0;
-        (function poll() {
-          if (++attempts > 50) return;
-          var input = document.querySelector('#search input[type="search"]');
-          if (input) {
-            input.value = q;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            return;
-          }
-          setTimeout(poll, 20);
-        })();
-      }
     })();
   </script>
 </Base>

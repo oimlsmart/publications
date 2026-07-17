@@ -27,6 +27,15 @@ const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
 
 <script is:inline>
   (function () {
+    // Polyfill Promise.withResolvers for older Safari/Chrome
+    if (typeof Promise.withResolvers === 'undefined') {
+      Promise.withResolvers = function () {
+        var resolve, reject;
+        var promise = new Promise(function (res, rej) { resolve = res; reject = rej; });
+        return { promise: promise, resolve: resolve, reject: reject };
+      };
+    }
+
     var PDFJS_VERSION = '4.8.69';
     var pdfjsSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VERSION + '/build/pdf.min.mjs';
     var workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VERSION + '/build/pdf.worker.min.mjs';
