@@ -1,18 +1,18 @@
 ---
 import SITE from '../data/site-meta'
+import SiteNav from '../components/SiteNav.astro'
+import SiteFooter from '../components/SiteFooter.astro'
 import '../styles/app.css'
 
 interface Props {
   title?: string
   description?: string
-  /** Path under basePath for the active nav state. */
   currentPath?: string
 }
 
 const { title, description, currentPath = '' } = Astro.props
-const pageTitle = title ? `${title} | ${SITE.title}` : SITE.title
+const pageTitle = title ? `${title} · ${SITE.title}` : SITE.title
 const desc = description ?? SITE.description
-const root = SITE.basePath
 ---
 
 <!DOCTYPE html>
@@ -26,15 +26,15 @@ const root = SITE.basePath
     rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
   />
-  <link rel="icon" type="image/svg+xml" href={`${root}/favicon.svg`} />
+  <link rel="icon" type="image/svg+xml" href={`${SITE.basePath}/favicon.svg`} />
+  <link rel="apple-touch-icon" href={`${SITE.basePath}/apple-touch-icon.png`} />
   <meta name="theme-color" content="#004996" />
   <meta name="color-scheme" content="light dark" />
   <title>{pageTitle}</title>
   <meta name="description" content={desc} />
 
   <script is:inline>
-    // Apply theme before paint to avoid FOUC
-    const t = localStorage.getItem('theme')
+    const t = localStorage.getItem('oiml-theme')
     if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark')
     }
@@ -42,51 +42,12 @@ const root = SITE.basePath
   <slot name="head" />
 </head>
 <body class="min-h-screen bg-paper-soft dark:bg-paper-deep text-ink dark:text-ink-light antialiased">
-  <header class="site-nav sticky top-0 z-[100] bg-paper-soft/90 dark:bg-paper-deep/90 backdrop-blur border-b border-rule">
-    <div class="max-w-7xl mx-auto px-6 flex items-center justify-between h-14">
-      <a href={`${root}/`} class="flex items-center gap-2 no-underline text-ink">
-        <span class="font-serif text-base font-semibold tracking-tight">OIML Publications</span>
-      </a>
-      <nav class="flex items-center gap-5">
-        <a
-          href={`${root}/browse/`}
-          class={`text-sm font-medium text-ink-soft hover:text-accent transition-colors ${currentPath.startsWith('/browse') ? 'text-accent font-semibold' : ''}`}
-        >Browse</a>
-        <a
-          href={`${root}/search/`}
-          class={`text-sm font-medium text-ink-soft hover:text-accent transition-colors ${currentPath === '/search' ? 'text-accent font-semibold' : ''}`}
-        >Search</a>
-        <button
-          id="theme-toggle"
-          class="text-sm font-medium text-ink-soft hover:text-accent"
-          aria-label="Toggle dark mode"
-        >☾</button>
-      </nav>
-    </div>
-  </header>
+  <SiteNav currentPath={currentPath} />
 
   <main>
     <slot />
   </main>
 
-  <footer class="border-t border-rule mt-16 py-8">
-    <div class="max-w-7xl mx-auto px-6 text-sm text-ink-soft space-y-2">
-      <p>
-        Bibliographic data mirrored from
-        <a class="text-accent hover:underline" href="https://github.com/relaton/relaton-data-oiml">relaton/relaton-data-oiml</a>.
-        PDFs © OIML, mirrored from <a class="text-accent hover:underline" href="https://www.oiml.org/publications">oiml.org</a> for public accessibility.
-      </p>
-      <p>
-        Site code under MIT. See the <a class="text-accent hover:underline" href="https://github.com/oimlsmart/publications">repository</a> for details.
-      </p>
-    </div>
-  </footer>
-
-  <script is:inline>
-    document.getElementById('theme-toggle')?.addEventListener('click', () => {
-      const isDark = document.documentElement.classList.toggle('dark')
-      localStorage.setItem('theme', isDark ? 'dark' : 'light')
-    })
-  </script>
+  <SiteFooter />
 </body>
 </html>
