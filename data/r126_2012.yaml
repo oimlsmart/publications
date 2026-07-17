@@ -1,0 +1,90 @@
+---
+id: R126-2012
+schema_version: v1.5.6
+type: standard
+title:
+- language: eng
+  content: Evidential breath analyzers
+  type: main
+- language: fra
+  content: Éthylomètres
+  type: main
+docidentifier:
+- content: OIML R 126:2012
+  type: OIML
+  primary: true
+docnumber: '126'
+date:
+- type: published
+  from: '2012-01-01'
+contributor:
+- role:
+  - type: publisher
+  organization:
+    name:
+    - content: International Organization of Legal Metrology
+    abbreviation:
+      content: OIML
+- role:
+  - type: author
+    description:
+    - content: committee
+  organization:
+    name:
+    - content: International Organization of Legal Metrology
+    subdivision:
+    - name:
+      - content: Technical Committee 17
+      identifier:
+      - content: TC17
+      type: technical-committee
+    - name:
+      - content: Subcommittee 7
+      identifier:
+      - content: SC7
+      type: subcommittee
+    abbreviation:
+      content: OIML
+version:
+- content: '2012-01-01'
+language:
+- eng
+- fra
+script:
+- Latn
+status:
+  stage:
+    content: superseded
+copyright:
+- from: '2012'
+  owner:
+  - organization:
+      name:
+      - content: International Organization of Legal Metrology
+      abbreviation:
+        content: OIML
+relation:
+- type: hasInstance
+  bibitem:
+    docidentifier:
+    - content: OIML R 126:2012 (E)
+      type: OIML
+- type: hasInstance
+  bibitem:
+    docidentifier:
+    - content: OIML R 126:2012 (F)
+      type: OIML
+ext:
+  doctype:
+    content: recommendation
+  flavor: oiml
+  scope: This Recommendation applies to evidential breath alcohol analysers (EBA),
+    which are quantitative instruments that render a measurement result of alcohol
+    concentration in exhaled human breath for the purpose of establishing compliance,
+    for instance, with national policy for fighting against alcohol abuse and/or for
+    the advancement of public safety.
+  quantity: Amount of substance concentration
+  measuring_instrument: Evidential breath analyser
+  focus_area: Trade
+  sustainability_framework: People
+  doi: 10.63493/r126.2012.en

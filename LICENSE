@@ -1,0 +1,31 @@
+## Data licensing
+
+### Bibliographic data (`data/*.yaml`)
+
+Mirrored verbatim from
+[relaton/relaton-data-oiml](https://github.com/relaton/relaton-data-oiml).
+That dataset is © relaton contributors and is licensed for reuse under
+the Open Data Commons Attribution License v1.0 (ODC-BY 1.0):
+<https://opendatacommons.org/licenses/by/1-0/>
+
+### PDF files (`pdfs/*.pdf`)
+
+© International Organization of Legal Metrology (OIML).
+<https://www.oiml.org>
+
+These PDFs are publicly accessible documents that OIML distributes free
+of charge on its website. They are mirrored here for archival,
+searchability, and to enable machine-readable processing. Any reuse
+beyond personal reference or quotation requires permission from OIML.
+
+Trademarks: "OIML", "OIML SMART", the OIML logo, and the OIML-CS marks
+are trademarks of the International Organization of Legal Metrology.
+
+### Site code (`site/`, `scripts/`)
+
+MIT License. Copyright (c) 2026 OIML SMART contributors.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction…
+(standard MIT terms).

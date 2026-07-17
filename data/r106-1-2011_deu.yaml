@@ -1,0 +1,71 @@
+---
+id: R106-1-2011-deu
+schema_version: v1.5.6
+type: standard
+title:
+- language: deu
+  content: 'Automatic rail-weighbridges. Part 1: Metrological and technical requirements
+    - Tests'
+  type: main
+source:
+- type: website
+  content: https://www.oiml.org/en/publications/other-language-translations/german/r106-1-de-11.pdf
+docidentifier:
+- content: OIML R 106-1:2011 (D)
+  type: OIML
+  primary: true
+docnumber: '106'
+date:
+- type: published
+  from: '2011-01-01'
+contributor:
+- role:
+  - type: translator
+  organization:
+    name:
+    - content: DIN Working Committee on Weighing Technology
+- role:
+  - type: author
+    description:
+    - content: committee
+  organization:
+    name:
+    - content: International Organization of Legal Metrology
+    subdivision:
+    - name:
+      - content: Technical Committee 9
+      identifier:
+      - content: TC9
+      type: technical-committee
+    - name:
+      - content: Subcommittee 2
+      identifier:
+      - content: SC2
+      type: subcommittee
+    abbreviation:
+      content: OIML
+language:
+- deu
+script:
+- Latn
+status:
+  stage:
+    content: in-force
+copyright:
+- from: '2011'
+  owner:
+  - organization:
+      name:
+      - content: International Organization of Legal Metrology
+      abbreviation:
+        content: OIML
+relation:
+- type: translatedFrom
+  bibitem:
+    docidentifier:
+    - content: OIML R 106-1:2011 (E)
+      type: OIML
+ext:
+  doctype:
+    content: translation
+  flavor: oiml

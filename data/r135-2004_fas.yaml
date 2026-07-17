@@ -1,0 +1,70 @@
+---
+id: R135-2004-fas
+schema_version: v1.5.6
+type: standard
+title:
+- language: fas
+  content: Spectrophotometers for medical laboratories
+  type: main
+source:
+- type: website
+  content: https://www.oiml.org/en/publications/other-language-translations/persian/r135-2004-spectrophotometers-for-medical.pdf
+docidentifier:
+- content: OIML R 135:2004 (PE)
+  type: OIML
+  primary: true
+docnumber: '135'
+date:
+- type: published
+  from: '2004-01-01'
+contributor:
+- role:
+  - type: translator
+  organization:
+    name:
+    - content: ISIRI
+- role:
+  - type: author
+    description:
+    - content: committee
+  organization:
+    name:
+    - content: International Organization of Legal Metrology
+    subdivision:
+    - name:
+      - content: Technical Committee 18
+      identifier:
+      - content: TC18
+      type: technical-committee
+    - name:
+      - content: Subcommittee 5
+      identifier:
+      - content: SC5
+      type: subcommittee
+    abbreviation:
+      content: OIML
+language:
+- fas
+script:
+- Arab
+status:
+  stage:
+    content: in-force
+copyright:
+- from: '2004'
+  owner:
+  - organization:
+      name:
+      - content: International Organization of Legal Metrology
+      abbreviation:
+        content: OIML
+relation:
+- type: translatedFrom
+  bibitem:
+    docidentifier:
+    - content: OIML R 135:2004 (E)
+      type: OIML
+ext:
+  doctype:
+    content: translation
+  flavor: oiml

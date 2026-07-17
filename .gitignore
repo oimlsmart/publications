@@ -1,0 +1,14 @@
+# site — built artifacts
+site/node_modules/
+site/dist/
+site/.astro/
+site/npm-debug.log*
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# tmp
+*.tmp
+tmp/

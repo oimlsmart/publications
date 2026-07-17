@@ -1,0 +1,86 @@
+---
+id: R65-2000
+schema_version: v1.5.6
+type: standard
+title:
+- language: eng
+  content: Force measuring system of uniaxial material testing machines
+  type: main
+- language: fra
+  content: Système de mesure de force des machines uniaxiales d'essai des matériaux
+  type: main
+docidentifier:
+- content: OIML R 65:2000
+  type: OIML
+  primary: true
+docnumber: '65'
+date:
+- type: published
+  from: '2000-01-01'
+contributor:
+- role:
+  - type: publisher
+  organization:
+    name:
+    - content: International Organization of Legal Metrology
+    abbreviation:
+      content: OIML
+- role:
+  - type: author
+    description:
+    - content: committee
+  organization:
+    name:
+    - content: International Organization of Legal Metrology
+    subdivision:
+    - name:
+      - content: Technical Committee 10
+      identifier:
+      - content: TC10
+      type: technical-committee
+    - name:
+      - content: Subcommittee 4
+      identifier:
+      - content: SC4
+      type: subcommittee
+    abbreviation:
+      content: OIML
+version:
+- content: '2000-01-01'
+language:
+- eng
+- fra
+script:
+- Latn
+status:
+  stage:
+    content: superseded
+copyright:
+- from: '2000'
+  owner:
+  - organization:
+      name:
+      - content: International Organization of Legal Metrology
+      abbreviation:
+        content: OIML
+relation:
+- type: hasInstance
+  bibitem:
+    docidentifier:
+    - content: OIML R 65:2000 (E)
+      type: OIML
+- type: hasInstance
+  bibitem:
+    docidentifier:
+    - content: OIML R 65:2000 (F)
+      type: OIML
+ext:
+  doctype:
+    content: recommendation
+  flavor: oiml
+  scope: This Recommendation gives the metrological and technical performance requirements
+    and the inspection and testing procedures necessary for the metrological control
+    of the force measuring system of uniaxial material testing machines subject to
+    national laws and regulations.
+  quantity: Force
+  doi: 10.63493/r065.2000.en

@@ -1,0 +1,107 @@
+---
+id: R91-2025
+schema_version: v1.5.6
+type: standard
+title:
+- language: eng
+  content: Traffic speed meters
+  type: main
+- language: fra
+  content: Cinémomètres pour la mesure de la vitesse des véhicules
+  type: main
+source:
+- type: website
+  content: https://www.oiml.org/en/files/pdf_r/r091-e25.pdf
+docidentifier:
+- content: OIML R 91:2025
+  type: OIML
+  primary: true
+docnumber: '91'
+date:
+- type: published
+  from: '2025-01-01'
+contributor:
+- role:
+  - type: publisher
+  organization:
+    name:
+    - content: International Organization of Legal Metrology
+    abbreviation:
+      content: OIML
+- role:
+  - type: author
+    description:
+    - content: committee
+  organization:
+    name:
+    - content: International Organization of Legal Metrology
+    subdivision:
+    - name:
+      - content: Technical Committee 7
+      identifier:
+      - content: TC7
+      type: technical-committee
+    - name:
+      - content: Subcommittee 4
+      identifier:
+      - content: SC4
+      type: subcommittee
+    abbreviation:
+      content: OIML
+version:
+- content: '2025-01-01'
+language:
+- eng
+- fra
+script:
+- Latn
+status:
+  stage:
+    content: in-force
+copyright:
+- from: '2025'
+  owner:
+  - organization:
+      name:
+      - content: International Organization of Legal Metrology
+      abbreviation:
+        content: OIML
+relation:
+- type: hasPart
+  bibitem:
+    docidentifier:
+    - content: OIML R 91-1:2025
+      type: OIML
+- type: hasPart
+  bibitem:
+    docidentifier:
+    - content: OIML R 91-2:2025
+      type: OIML
+- type: hasPart
+  bibitem:
+    docidentifier:
+    - content: OIML R 91-3:2025
+      type: OIML
+- type: hasPart
+  bibitem:
+    docidentifier:
+    - content: OIML R 91-4:2025
+      type: OIML
+ext:
+  doctype:
+    content: recommendation
+  flavor: oiml
+  scope: This Recommendation specifies the metrological and technical requirements,
+    metrological controls and test procedures for speed enforcement devices for the
+    measurement of traffic speed of vehicles on the road, hereafter referred to as
+    "speed meters". The Recommendation states the conditions that the speed meter
+    shall satisfy when results of speed measurement are to be used in legal proceedings.
+    The Recommendation does not cover the policy of setting speed limits or trigger
+    limits for measurements.
+  quantity: Velocity
+  measuring_instrument: Traffic speed meter
+  focus_area: Safety
+  sustainability_framework: People
+  doi: 10.63493/r091.2025.en
+  high_priority: true
+  high_priority_source: https://www.oiml.org/en/publications/oiml-bulletin/2026-01/20260111
