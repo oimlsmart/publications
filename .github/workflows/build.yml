@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/setup-node@v4
         with:
@@ -38,11 +40,13 @@ jobs:
 
       - name: Stage PDFs and data into the build artifact
         run: |
-          # Mirror pdfs/ and data/ into site/dist/ so GitHub Pages can serve them.
-          # Bulletins are already excluded by .gitignore/rsync filters upstream.
+          # Mirror pdfs/ and relaton-data-oiml/data/ into site/dist/ so
+          # GitHub Pages can serve them. Bulletins and scratch dirs are
+          # excluded (matches scripts/sync-pdfs.sh).
           rsync -a --exclude 'bulletin_*' --exclude '_caco3_downloads' --exclude '_oiml_org_downloads' \
             pdfs/ site/dist/pdfs/
-          rsync -a data/ site/dist/data/
+          rsync -a \
+            relaton-data-oiml/data/ site/dist/data/
           echo "Artifact contents:"
           du -sh site/dist/*
 

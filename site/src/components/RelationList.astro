@@ -11,13 +11,18 @@ interface Props {
 const { relations, selfId } = Astro.props
 const data = loadDataset()
 
-// Build docid → pub lookup (works AND instances)
+// Build docid → pub lookup across the new hierarchy (series → editions → parts → instances)
 const byDocid = new Map<string, { slug: string; docid: string }>()
-for (const w of data.works.values()) {
-  byDocid.set(w.docid, { slug: w.slug, docid: w.docid })
-}
-for (const inst of data.instances.values()) {
-  byDocid.set(inst.docid, { slug: inst.slug, docid: inst.docid })
+for (const s of data.series) {
+  byDocid.set(s.docid, { slug: s.slug, docid: s.docid })
+  for (const ed of s.editions) {
+    byDocid.set(ed.docid, { slug: ed.slug, docid: ed.docid })
+    for (const p of ed.parts) {
+      byDocid.set(p.docid, { slug: p.slug, docid: p.docid })
+      for (const i of p.instances) byDocid.set(i.docid, { slug: i.slug, docid: i.docid })
+    }
+    for (const i of ed.instances) byDocid.set(i.docid, { slug: i.slug, docid: i.docid })
+  }
 }
 
 const grouped: Record<string, Relation[]> = {}

@@ -16,7 +16,7 @@ import type {
 import { ALL_DOCTYPES, EXCLUDED_DOCTYPES } from './types'
 
 const ROOT = join(process.cwd(), '..')
-const DATA_DIR = join(ROOT, 'data')
+const DATA_DIR = join(ROOT, 'relaton-data-oiml', 'data')
 const PDFS_DIR = join(ROOT, 'pdfs')
 
 // Astro base path (`base` in astro.config.mjs).
@@ -446,6 +446,8 @@ function findInstancesFor(
 ): Instance[] {
   const out: Instance[] = []
   const seen = new Set<string>()
+
+  // Method 1: work has hasInstance relations pointing at instances
   for (const rel of work.relations) {
     if (rel.type !== 'hasInstance') continue
     const target = byDocid.get(rel.target)
@@ -456,6 +458,23 @@ function findInstancesFor(
       out.push(inst)
     }
   }
+
+  // Method 2: any instance whose instanceOf target is this work's docid
+  if (out.length === 0) {
+    for (const inst of instObjs.values()) {
+      for (const rel of inst.relations) {
+        if (rel.type !== 'instanceOf') continue
+        if (rel.target === work.docid) {
+          if (!seen.has(inst.id)) {
+            seen.add(inst.id)
+            out.push(inst)
+          }
+          break
+        }
+      }
+    }
+  }
+
   return out
 }
 

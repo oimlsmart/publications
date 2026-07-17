@@ -1,0 +1,69 @@
+---
+import Base from '../layouts/Base.astro'
+import type { Edition, Part, Series } from '../data/types'
+import { BASE_PATH } from '../data/publications'
+import DoctypeChip from './DoctypeChip.astro'
+import StatusBadge from './StatusBadge.astro'
+import RelationList from './RelationList.astro'
+
+export interface Props { series: Series; edition: Edition; part: Part }
+const { series, edition: ed, part: p } = Astro.props
+const title = p.title.eng ?? p.title.fra ?? p.docid
+---
+
+<Base title={p.docid} currentPath={`/pub/${p.slug}`}>
+  <slot name="head" slot="head">
+    <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${p.slug}`} />
+    <meta property="og:title" content={p.docid} />
+    <meta property="og:description" content={p.scope ?? title} />
+  </slot>
+
+  <section class="px-8 pt-10 pb-6 border-b border-rule">
+    <div class="max-w-6xl mx-auto">
+      <a href={`${BASE_PATH}/pub/${ed.slug}/`} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {ed.docid}</a>
+      <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
+        <DoctypeChip doctype={series.doctype} />
+        <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">Part {p.partNumber}</span>
+        <span class="font-mono text-sm text-ink-soft">{p.docid}</span>
+        <StatusBadge status={p.status} />
+      </div>
+      <h1 class="font-serif text-3xl font-medium leading-tight tracking-tight mb-2">{title}</h1>
+      {p.scope && <p class="text-ink-soft max-w-3xl">{p.scope}</p>}
+    </div>
+  </section>
+
+  <section class="px-8 py-6">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="font-serif text-2xl mb-4">Language editions</h2>
+      {p.instances.length === 0 ? (
+        <p class="text-ink-soft text-sm">No language PDFs available.</p>
+      ) : (
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {p.instances.map(i => (
+            <a href={`${BASE_PATH}/pub/${i.slug}/`} class="border border-rule p-4 rounded-sm hover:border-accent hover:shadow-md transition-all bg-paper-soft dark:bg-paper">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">{i.language}</span>
+                <span class="text-xs text-ink-soft">{i.language}</span>
+              </div>
+              <div class="text-sm font-mono text-ink-soft">{i.docid}</div>
+              {i.localPdfPath ? (
+                <div class="text-xs mt-2 text-green-700 dark:text-green-300 font-mono">PDF available ({Math.round((i.fileSize ?? 0) / 1024 / 1024 * 10) / 10} MB)</div>
+              ) : (
+                <div class="text-xs mt-2 text-amber-700 dark:text-amber-300 font-mono">No local PDF</div>
+              )}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+
+  {p.relations.length > 0 && (
+    <section class="px-8 py-6 border-t border-rule">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="font-serif text-2xl mb-4">Related publications</h2>
+        <RelationList relations={p.relations} selfId={p.docid} />
+      </div>
+    </section>
+  )}
+</Base>

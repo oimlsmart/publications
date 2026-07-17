@@ -1,0 +1,108 @@
+---
+import Base from '../layouts/Base.astro'
+import type { Edition, Series } from '../data/types'
+import { BASE_PATH } from '../data/publications'
+import DoctypeChip from './DoctypeChip.astro'
+import StatusBadge from './StatusBadge.astro'
+import RelationList from './RelationList.astro'
+
+export interface Props { series: Series; edition: Edition }
+const { series, edition: ed } = Astro.props
+const title = ed.title.eng ?? ed.title.fra ?? ed.docid
+const hasParts = ed.parts.length > 0
+---
+
+<Base title={ed.docid} currentPath={`/pub/${ed.slug}`}>
+  <slot name="head" slot="head">
+    <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${ed.slug}`} />
+    <meta property="og:title" content={ed.docid} />
+    <meta property="og:description" content={ed.scope ?? title} />
+    {ed.doi && <meta name="citation_doi" content={ed.doi} />}
+    {ed.publishedAt && <meta name="citation_publication_date" content={ed.publishedAt} />}
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': ['Standard', 'CreativeWork'],
+      '@id': `${BASE_PATH}/pub/${ed.slug}/`,
+      identifier: ed.docid,
+      name: title,
+      description: ed.scope,
+      datePublished: ed.publishedAt,
+      inLanguage: ed.languages(),
+      isPartOf: `${BASE_PATH}/pub/${series.slug}/`,
+      hasPart: ed.parts.map(p => `${BASE_PATH}/pub/${p.slug}/`),
+      doi: ed.doi,
+      publisher: { '@type': 'Organization', name: 'OIML' },
+    })} />
+  </slot>
+
+  <section class="px-8 pt-10 pb-6 border-b border-rule">
+    <div class="max-w-6xl mx-auto">
+      <a href={`${BASE_PATH}/pub/${series.slug}/`} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {series.docid}</a>
+      <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
+        <DoctypeChip doctype={series.doctype} />
+        <span class="font-mono text-sm text-ink-soft">{ed.docid}</span>
+        <StatusBadge status={ed.status} />
+      </div>
+      <h1 class="font-serif text-3xl font-medium leading-tight tracking-tight mb-2">{title}</h1>
+      {ed.scope && <p class="text-ink-soft max-w-3xl">{ed.scope}</p>}
+    </div>
+  </section>
+
+  <div class="max-w-6xl mx-auto px-8 py-6">
+    {hasParts ? (
+      <section>
+        <h2 class="font-serif text-2xl mb-4">Parts</h2>
+        <ul class="divide-y divide-rule border border-rule rounded-sm overflow-hidden">
+          {ed.parts.map(p => {
+            const pt = p.title.eng ?? p.title.fra ?? p.docid
+            return (
+              <li>
+                <a href={`${BASE_PATH}/pub/${p.slug}/`} class="block px-4 py-4 hover:bg-paper-soft dark:hover:bg-paper-deep transition-colors">
+                  <div class="flex items-center gap-3 flex-wrap mb-1">
+                    <span class="font-mono text-xs px-2 py-0.5 border border-rule rounded-sm">Part {p.partNumber}</span>
+                    <span class="text-sm font-mono text-ink-soft">{p.docid}</span>
+                    <span class="text-xs text-ink-soft ml-auto">{p.instances.length} language{p.instances.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div class="text-sm">{pt}</div>
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+    ) : (
+      <section>
+        <h2 class="font-serif text-2xl mb-4">Language editions</h2>
+        {ed.instances.length === 0 ? (
+          <p class="text-ink-soft text-sm">No language PDFs available.</p>
+        ) : (
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {ed.instances.map(i => (
+              <a href={`${BASE_PATH}/pub/${i.slug}/`} class="border border-rule p-4 rounded-sm hover:border-accent hover:shadow-md transition-all bg-paper-soft dark:bg-paper">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">{i.language}</span>
+                  <span class="text-xs text-ink-soft">{i.language}</span>
+                </div>
+                <div class="text-sm font-mono text-ink-soft">{i.docid}</div>
+                {i.localPdfPath ? (
+                  <div class="text-xs mt-2 text-green-700 dark:text-green-300 font-mono">PDF available ({Math.round((i.fileSize ?? 0) / 1024 / 1024 * 10) / 10} MB)</div>
+                ) : (
+                  <div class="text-xs mt-2 text-amber-700 dark:text-amber-300 font-mono">No local PDF</div>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
+    )}
+  </div>
+
+  {ed.relations.length > 0 && (
+    <section class="px-8 py-8 border-t border-rule">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="font-serif text-2xl mb-4">Related publications</h2>
+        <RelationList relations={ed.relations} selfId={ed.docid} />
+      </div>
+    </section>
+  )}
+</Base>
