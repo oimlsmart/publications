@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:4321',
+    baseURL: 'http://localhost:4325',
     trace: 'on-first-retry',
   },
   projects: [
@@ -17,8 +17,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run preview -- --port 4321',
-    url: 'http://localhost:4321/publications/',
+    command: 'npm run preview -- --port 4325',
+    url: 'http://localhost:4325/publications/',
     reuseExistingServer: !process.env.CI,
     timeout: 60000,
   },

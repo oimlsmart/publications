@@ -11,7 +11,7 @@ import { join } from 'node:path'
 import { parse } from 'yaml'
 import type {
   Dataset, Series, Edition, Part, Instance,
-  Doctype, Status, Lang, Relation,
+  Doctype, Status, Lang, Relation, DoiSource,
 } from './types'
 import { ALL_DOCTYPES, EXCLUDED_DOCTYPES } from './types'
 
@@ -22,10 +22,78 @@ const PDFS_DIR = join(ROOT, 'pdfs')
 // Astro base path (`base` in astro.config.mjs).
 export const BASE_PATH = '/publications'
 
+// ─── identifier derivation (DOI + URN) ───────────────────────────────
+// DOI: OIML owns prefix 10.63493 and follows a uniform suffix pattern
+//   10.63493/<letter><NNN>.<year>.en
+// where <letter> is the lowercase doctype initial (r/d/g/b/v/e/s), <NNN>
+// is the docnumber zero-padded to 3 digits, and the language suffix is
+// always "en" (DOI is edition-level, not language-level — verified across
+// all 889 upstream DOIs in relaton-data-oiml).
+//
+// URN: RFC 5141 ISO-std namespace, extended with year/part/lang:
+//   urn:iso:std:oiml:<num>[:<year>[:<part>[:<lang>]]]
+// Matches what relaton-iso/metanorma emit and is safe to derive for every
+// record (URNs need no registration authority).
+
+const DOI_PREFIX = '10.63493'
+const URN_PREFIX = 'urn:iso:std:oiml'
+
+const DOCTYPE_LETTER: Record<Doctype, string> = {
+  'recommendation': 'r',
+  'basic-publication': 'b',
+  'document': 'd',
+  'guide': 'g',
+  'expert-report': 'e',
+  'seminar-report': 's',
+  'vocabulary': 'v',
+}
+
+/** ISO 639-3 → ISO 639-1 (used for DOI suffix and URN lang component). */
+const LANG_TO_2LETTER: Partial<Record<Lang, string>> = {
+  eng: 'en', fra: 'fr', ara: 'ar', srp: 'sr', ukr: 'uk',
+  zho: 'zh', deu: 'de', rus: 'ru', pol: 'pl', por: 'pt',
+  spa: 'es', fas: 'fa', ron: 'ro',
+}
+
+interface IdentInput {
+  doctype: Doctype
+  docnumber: string
+  year?: number
+  partNumber?: string
+  language?: Lang
+}
+
+/** Compute the OIML-pattern DOI for an edition. Returns undefined if
+ *  doctype/docnumber/year aren't known. */
+export function deriveDoi(input: IdentInput): string | undefined {
+  const letter = DOCTYPE_LETTER[input.doctype]
+  if (!letter || !input.docnumber || !input.year) return undefined
+  const num = input.docnumber.padStart(3, '0')
+  return `${DOI_PREFIX}/${letter}${num}.${input.year}.en`
+}
+
+/** Compute the hierarchical URN. Includes year if known; part/lang only
+ *  when those components are present (so series → edition → part → instance
+ *  URNs nest cleanly). */
+export function deriveUrn(input: IdentInput): string | undefined {
+  if (!input.docnumber || !DOCTYPE_LETTER[input.doctype]) return undefined
+  const parts: string[] = [URN_PREFIX, input.docnumber]
+  if (input.year) parts.push(String(input.year))
+  if (input.partNumber) parts.push(input.partNumber)
+  if (input.language) {
+    const lang2 = LANG_TO_2LETTER[input.language]
+    if (lang2) parts.push(lang2)
+  }
+  return parts.join(':')
+}
+
+
 // ─── id/slug helpers ─────────────────────────────────────────────────
 
-// Match language suffix on relaton id: -E, -F (old) or -eng, -fra, -ara, etc.
-const LANG_SUFFIX_RE = /-(E|F|A|Sr|Uk|Eng|Fra|Ara|Deu|Rus|Pol|Por|Spa|Zho|Chi|Fa|Cn|Ua|Ro|eng|fra|ara|srp|ukr|deu|rus|pol|por|spa|zho|chi)$/i
+// Match language suffix on relaton id. Covers every suffix OIML uses in
+// its data: short legacy codes (E/F/A), ISO 639-3 (eng/fra/ara/deu/fas/pol/
+// spa/srp/ukr/zho), and a few non-standard variants (Chi/Cn/Ua/Ro/Fa/Fara).
+const LANG_SUFFIX_RE = /-(E|F|A|Sr|Uk|Eng|Fra|Ara|Deu|Rus|Pol|Por|Spa|Zho|Chi|Fa|Fas|Fara|Cn|Ua|Ro|eng|fra|ara|srp|ukr|deu|rus|pol|por|spa|zho|fas|chi)$/i
 
 const LANG_CODE_MAP: Record<string, Lang> = {
   e: 'eng', f: 'fra', a: 'ara',
@@ -34,7 +102,9 @@ const LANG_CODE_MAP: Record<string, Lang> = {
   ukr: 'ukr', uk: 'ukr', ua: 'ukr',
   zho: 'zho', chi: 'zho', cn: 'zho',
   deu: 'deu', rus: 'rus', pol: 'pol', por: 'por',
-  spa: 'spa', sp: 'spa', fa: 'fas', fara: 'fas', ro: 'ron',
+  spa: 'spa', sp: 'spa',
+  fa: 'fas', fas: 'fas', fara: 'fas',
+  ro: 'ron',
 }
 
 function languageFromId(id: string): Lang | undefined {
@@ -49,6 +119,16 @@ function slugify(id: string): string {
 
 // ─── YAML parsing helpers ────────────────────────────────────────────
 
+const DOCTYPE_FROM_LETTER: Record<string, Doctype> = {
+  r: 'recommendation',
+  d: 'document',
+  g: 'guide',
+  b: 'basic-publication',
+  v: 'vocabulary',
+  e: 'expert-report',
+  s: 'seminar-report',
+}
+
 function doctypeOf(yaml: any): Doctype | 'excluded' | 'unknown' {
   const raw = yaml?.ext?.doctype
   let s: string | undefined
@@ -57,6 +137,14 @@ function doctypeOf(yaml: any): Doctype | 'excluded' | 'unknown' {
   if (!s) return 'unknown'
   if (EXCLUDED_DOCTYPES.has(s)) return 'excluded'
   if (ALL_DOCTYPES.includes(s as Doctype)) return s as Doctype
+  // relaton models translation as a first-class doctype; OIML's publication
+  // taxonomy only has R/D/G/B/V/E/S. Map relaton's `translation` back to the
+  // parent OIML doctype via the id's leading letter (R4-1972-ara → 'r' →
+  // recommendation). Without this, every translated PDF is silently dropped.
+  if (s === 'translation') {
+    const letter = String(yaml?.id ?? '').charAt(0).toLowerCase()
+    return DOCTYPE_FROM_LETTER[letter] ?? 'unknown'
+  }
   return 'unknown'
 }
 
@@ -102,7 +190,7 @@ const RELATION_TYPES = new Set([
   'predecessorOf', 'hasPredecessor',
   'adoptedFrom', 'adoptedBy',
   'manifestationOf', 'hasManifestation',
-  'translationOf', 'hasTranslation',
+  'translationOf', 'hasTranslation', 'translatedFrom',
   'related',
 ])
 
@@ -185,7 +273,8 @@ interface RawRec {
   tc?: string
   sustainabilityFramework?: 'People' | 'Prosperity' | 'Planet'
   highPriority?: boolean
-  doi?: string
+  /** DOI as read from ext.doi (upstream). */
+  upstreamDoi?: string
   publishedAt?: string
   relations: Relation[]
   localYamlPath: string
@@ -244,7 +333,7 @@ function parseRaw(file: string): RawRec | null {
     tc: tcOf(yaml),
     sustainabilityFramework: yaml?.ext?.sustainability_framework,
     highPriority: yaml?.ext?.high_priority === true,
-    doi: yaml?.ext?.doi,
+    upstreamDoi: yaml?.ext?.doi,
     publishedAt: yaml.date?.find((d: any) => d.type === 'published')?.from,
     relations: relationsOf(yaml),
     localYamlPath: `${BASE_PATH}/data/${file}`,
@@ -297,6 +386,12 @@ export function loadDataset(): Dataset {
   // Build Instance objects
   const instObjs = new Map<string, Instance>()
   for (const r of instances) {
+    const identInput = {
+      doctype: r.doctype, docnumber: r.docnumber, year: r.year,
+      partNumber: r.partNumber, language: r.language,
+    }
+    const upstreamDoi = r.upstreamDoi
+    const derivedDoi = upstreamDoi ? undefined : deriveDoi(identInput)
     instObjs.set(r.id, {
       id: r.id, slug: r.slug, docid: r.docid,
       language: r.language!,
@@ -305,7 +400,9 @@ export function loadDataset(): Dataset {
       localYamlPath: r.localYamlPath,
       fileSize: r.fileSize,
       publishedAt: r.publishedAt,
-      doi: r.doi,
+      doi: upstreamDoi ?? derivedDoi,
+      doiSource: (upstreamDoi ? 'upstream' : derivedDoi ? 'derived' : undefined) as DoiSource | undefined,
+      urn: deriveUrn(identInput),
       relations: r.relations,
     })
   }
@@ -314,10 +411,28 @@ export function loadDataset(): Dataset {
   const partWorks = works.filter(w => w.partNumber !== undefined)
   const editionWorks = works.filter(w => w.partNumber === undefined)
 
+  // Pre-compute pubKey → translation-instance index once. This avoids
+  // re-iterating all instances inside findInstancesFor for every work.
+  const translationsByKey = new Map<string, Instance[]>()
+  for (const inst of instObjs.values()) {
+    for (const rel of inst.relations) {
+      if (rel.type !== 'translatedFrom') continue
+      const key = pubKey(rel.target)
+      if (!key) continue
+      ;(translationsByKey.get(key) ?? translationsByKey.set(key, []).get(key)!).push(inst)
+    }
+  }
+
   // For each part-work, find its instances (via hasInstance relations)
   const parts = new Map<string, Part>()
   for (const w of partWorks) {
-    const insts = findInstancesFor(w, byId, byDocid, instObjs)
+    const insts = findInstancesFor(w, byId, byDocid, instObjs, translationsByKey)
+    const identInput = {
+      doctype: w.doctype, docnumber: w.docnumber, year: w.year,
+      partNumber: w.partNumber,
+    }
+    const upstreamDoi = w.upstreamDoi
+    const derivedDoi = upstreamDoi ? undefined : deriveDoi(identInput)
     parts.set(w.id, {
       id: w.id, slug: w.slug, docid: w.docid,
       partNumber: w.partNumber!,
@@ -325,7 +440,9 @@ export function loadDataset(): Dataset {
       scope: w.scope,
       instances: insts,
       status: w.status,
-      doi: w.doi,
+      doi: upstreamDoi ?? derivedDoi,
+      doiSource: (upstreamDoi ? 'upstream' : derivedDoi ? 'derived' : undefined) as DoiSource | undefined,
+      urn: deriveUrn(identInput),
       relations: w.relations,
     })
   }
@@ -334,7 +451,7 @@ export function loadDataset(): Dataset {
   const editions = new Map<string, Edition>()
   for (const w of editionWorks) {
     // Direct instances (single-document editions)
-    const directInsts = findInstancesFor(w, byId, byDocid, instObjs)
+    const directInsts = findInstancesFor(w, byId, byDocid, instObjs, translationsByKey)
     // Parts that belong to this edition (via hasPart relation)
     const editionParts: Part[] = []
     for (const rel of w.relations) {
@@ -346,6 +463,11 @@ export function loadDataset(): Dataset {
       if (part) editionParts.push(part)
     }
 
+    const edIdentInput = {
+      doctype: w.doctype, docnumber: w.docnumber, year: w.year,
+    }
+    const upstreamDoi = w.upstreamDoi
+    const derivedDoi = upstreamDoi ? undefined : deriveDoi(edIdentInput)
     editions.set(w.id, {
       id: w.id,
       slug: w.slug,
@@ -357,7 +479,9 @@ export function loadDataset(): Dataset {
       tc: w.tc,
       sustainabilityFramework: w.sustainabilityFramework,
       highPriority: w.highPriority,
-      doi: w.doi,
+      doi: upstreamDoi ?? derivedDoi,
+      doiSource: (upstreamDoi ? 'upstream' : derivedDoi ? 'derived' : undefined) as DoiSource | undefined,
+      urn: deriveUrn(edIdentInput),
       publishedAt: w.publishedAt,
       parts: editionParts.sort((a, b) => a.partNumber.localeCompare(b.partNumber, undefined, { numeric: true })),
       instances: directInsts.sort((a, b) => a.language.localeCompare(b.language)),
@@ -389,6 +513,7 @@ export function loadDataset(): Dataset {
         docnumber,
         title: {},
         editions: [],
+        urn: deriveUrn({ doctype, docnumber }),
       })
     }
     seriesMap.get(realKey)!.editions.push(ed)
@@ -443,6 +568,7 @@ function findInstancesFor(
   byId: Map<string, RawRec>,
   byDocid: Map<string, RawRec>,
   instObjs: Map<string, Instance>,
+  translationsByKey?: Map<string, Instance[]>,
 ): Instance[] {
   const out: Instance[] = []
   const seen = new Set<string>()
@@ -475,7 +601,32 @@ function findInstancesFor(
     }
   }
 
+  // Method 3: translations. A translation instance has a `translatedFrom`
+  // relation pointing at one of the work's instance docids (e.g.
+  // "OIML R 18:1985 (E)") or at a year-less variant ("OIML B 18 (E)").
+  // Match by normalized publication key "<letter> <number>" so both formats
+  // resolve to the same series. Uses a precomputed index for O(1) lookup.
+  if (translationsByKey) {
+    const workKey = pubKey(work.docid)
+    if (workKey) {
+      for (const inst of translationsByKey.get(workKey) ?? []) {
+        if (!seen.has(inst.id)) {
+          seen.add(inst.id)
+          out.push(inst)
+        }
+      }
+    }
+  }
+
   return out
+}
+
+/** Normalize a docid to "<letter> <number>" for series-level matching.
+ *  "OIML R 18:1985 (E)" → "R 18"; "OIML B 18 (E)" → "B 18". */
+function pubKey(docid: string): string | undefined {
+  const m = docid.match(/\b([A-Z])\s*0*(\d+)\b/)
+  if (!m) return undefined
+  return `${m[1]} ${parseInt(m[2], 10)}`
 }
 
 function mergeTitles(editions: Edition[]): Partial<Record<Lang, string>> {

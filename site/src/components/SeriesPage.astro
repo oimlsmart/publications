@@ -15,12 +15,13 @@ const langs = series.currentEdition?.languages() ?? []
 <Base title={series.docid} currentPath={`/pub/${series.slug}`}>
   <slot name="head" slot="head">
     <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${series.slug}`} />
+    {series.urn && <link rel="alternate" type="text/plain" href={series.urn} title="URN" />}
     <meta property="og:title" content={series.docid} />
     <meta property="og:description" content={series.scope ?? title} />
     <script type="application/ld+json" set:html={JSON.stringify({
       '@context': 'https://schema.org',
       '@type': ['Standard', 'CreativeWork'],
-      '@id': `${BASE_PATH}/pub/${series.slug}/`,
+      '@id': series.urn ?? `${BASE_PATH}/pub/${series.slug}/`,
       identifier: series.docid,
       name: title,
       description: series.scope,
@@ -57,6 +58,7 @@ const langs = series.currentEdition?.languages() ?? []
         {series.editions.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">First published</dt><dd class="text-base">{Math.min(...series.editions.map(e => e.year))}</dd></div>)}
         {series.editions.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">Latest edition</dt><dd class="text-base">{series.editions[0].year}</dd></div>)}
         {langs.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">Languages</dt><dd class="text-base">{langs.map(l => l).join(', ')}</dd></div>)}
+        {series.urn && (<div class="sm:col-span-2 md:col-span-4"><dt class="text-ink-soft uppercase text-xs tracking-wide">URN</dt><dd class="text-xs break-all">{series.urn}</dd></div>)}
       </dl>
     </div>
   </section>

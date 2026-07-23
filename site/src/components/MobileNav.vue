@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { BROWSE_DROPDOWN } from '../data/nav-config'
 
 const props = defineProps<{ basePath: string }>()
@@ -18,20 +18,18 @@ function close() {
 </script>
 
 <template>
-  <!-- Hamburger trigger -->
-  <button
-    class="md:hidden flex flex-col items-center justify-center gap-[5px] w-10 h-10 rounded-lg border border-rule cursor-pointer shrink-0 transition-colors hover:border-accent bg-transparent"
-    @click="toggle"
-    aria-label="Open menu"
-  >
-    <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200" :class="{ 'translate-y-[7px] rotate-45': isOpen }" />
-    <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200" :class="{ 'opacity-0': isOpen }" />
-    <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200" :class="{ '-translate-y-[7px] -rotate-45': isOpen }" />
-  </button>
+  <div class="md:hidden">
+    <button
+      class="flex flex-col items-center justify-center gap-[5px] w-10 h-10 rounded-lg border border-rule cursor-pointer shrink-0 transition-colors hover:border-accent bg-transparent"
+      @click="toggle"
+      aria-label="Open menu"
+    >
+      <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200" :class="{ 'translate-y-[7px] rotate-45': isOpen }" />
+      <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200" :class="{ 'opacity-0': isOpen }" />
+      <span class="block w-5 h-0.5 rounded-full bg-ink transition-all duration-200" :class="{ '-translate-y-[7px] -rotate-45': isOpen }" />
+    </button>
 
-  <!-- Full-screen overlay -->
-  <Teleport to="body">
-    <div v-if="isOpen" class="fixed inset-0 z-[300] bg-paper dark:bg-paper-deep flex flex-col md:hidden">
+    <div v-if="isOpen" class="fixed inset-0 z-[300] bg-paper dark:bg-paper-deep flex flex-col">
       <div class="flex items-center justify-between h-14 px-6 border-b border-rule shrink-0">
         <a :href="props.basePath + '/'" class="flex items-center gap-2 no-underline text-ink" @click="close">
           <img :src="props.basePath + '/oiml-logo-icon-light.svg'" alt="" class="logo-light h-7 w-auto shrink-0" />
@@ -60,5 +58,5 @@ function close() {
         <a href="https://github.com/oimlsmart/publications" class="block py-3 px-3 text-base text-ink-soft hover:bg-paper-raised dark:hover:bg-paper rounded">GitHub ↗</a>
       </nav>
     </div>
-  </Teleport>
+  </div>
 </template>

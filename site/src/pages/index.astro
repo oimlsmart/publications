@@ -35,11 +35,13 @@ const fmt = (n: number, format: string) =>
         cross-linked, and machine-readable.
       </p>
 
-      <form action={`${BASE_PATH}/search/`} method="get" class="mt-8 flex gap-2 bp-reveal" style="--reveal-delay:160ms;">
+      <form id="hero-search" action={`${BASE_PATH}/search/`} method="get" class="mt-8 flex gap-2 bp-reveal" style="--reveal-delay:160ms;">
         <input
-          type="search"
+          type="text"
           name="q"
           placeholder="Search by title, doc number, or scope…"
+          aria-label="Search publications"
+          enterkeyhint="search"
           class="flex-1 px-4 py-3 bg-paper dark:bg-paper-deep border border-rule rounded-sm focus:border-accent focus:outline-none"
         />
         <button type="submit" class="px-6 py-3 bg-accent text-paper-soft dark:text-paper-deep font-semibold rounded-sm hover:bg-brand-700 transition-colors">

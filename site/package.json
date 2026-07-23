@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Static browser site for oimlsmart/publications",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build && pagefind --site dist",
+    "dev": "node scripts/dev-setup.mjs && astro dev",
+    "build": "node scripts/build-cleanup.mjs && astro build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",

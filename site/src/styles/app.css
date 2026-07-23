@@ -175,6 +175,19 @@
   --grid-line-strong: rgba(245, 239, 228, 0.08);
 }
 
+/* Pagefind UI dark-mode overrides.
+   Pagefind ships a `:root { --pagefind-ui-text: #393939; ... }` palette that
+   loads dynamically via <link>. `:root` and `.dark` both have specificity
+   (0,1,0) — to win, we use `html.dark` (0,1,1) so light text/borders flip on
+   when the site is in dark mode. */
+html.dark {
+  --pagefind-ui-primary:    var(--color-ink);
+  --pagefind-ui-text:       var(--color-ink);
+  --pagefind-ui-background: var(--color-paper-raised);
+  --pagefind-ui-border:     var(--color-rule);
+  --pagefind-ui-tag:        var(--color-rule);
+}
+
 /* ── Base layer: reset + global UX polish ────────────
    Sits after Tailwind preflight (also @layer base) so our
    rules win on equal specificity. Body text/background set

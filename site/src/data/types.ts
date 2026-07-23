@@ -32,7 +32,6 @@ export type Doctype =
   | 'expert-report'
   | 'seminar-report'
   | 'vocabulary'
-  | 'translation'
 
 export const ALL_DOCTYPES: readonly Doctype[] = [
   'recommendation',
@@ -42,7 +41,6 @@ export const ALL_DOCTYPES: readonly Doctype[] = [
   'expert-report',
   'seminar-report',
   'vocabulary',
-  'translation',
 ] as const
 
 export const DOCTYPE_LABELS: Record<Doctype, { singular: string; plural: string }> = {
@@ -53,7 +51,6 @@ export const DOCTYPE_LABELS: Record<Doctype, { singular: string; plural: string 
   'expert-report':     { singular: 'Expert Report',      plural: 'Expert Reports' },
   'seminar-report':    { singular: 'Seminar Report',     plural: 'Seminar Reports' },
   'vocabulary':        { singular: 'Vocabulary',         plural: 'Vocabularies' },
-  'translation':       { singular: 'Translation',        plural: 'Translations' },
 }
 
 /** Doctypes that are explicitly out-of-scope (filtered from the index). */
@@ -85,11 +82,15 @@ export interface Relation {
     | 'updates' | 'updatedBy' | 'revises' | 'revisedBy'
     | 'amends' | 'amendedBy' | 'successorOf' | 'hasSuccessor'
     | 'predecessorOf' | 'hasPredecessor' | 'adoptedFrom' | 'adoptedBy'
-    | 'manifestationOf' | 'hasManifestation' | 'translationOf' | 'hasTranslation'
+    | 'manifestationOf' | 'hasManifestation'
+    | 'translationOf' | 'hasTranslation' | 'translatedFrom'
     | 'related' | 'other'
   /** The other pub's docid (e.g. "OIML R 60:2021 (E)"). */
   target: string
 }
+
+/** Where a DOI came from. 'upstream' = minted & present in source YAML; 'derived' = computed from the pattern. */
+export type DoiSource = 'upstream' | 'derived'
 
 /** A language-specific PDF (the actual file). */
 export interface Instance {
@@ -110,7 +111,12 @@ export interface Instance {
   fileSize?: number
   /** Date string from `date.published.from`, if present. */
   publishedAt?: string
+  /** DOI (10.63493/...). Always populated via deriveDoi() when year is known. */
   doi?: string
+  /** Whether `doi` was read from the source YAML or derived from the OIML pattern. */
+  doiSource?: DoiSource
+  /** URN (urn:iso:std:oiml:...) derived from docnumber/year/part/lang. */
+  urn?: string
   /** Raw relations from the YAML (cross-language, cross-edition, etc.). */
   relations: Relation[]
 }
@@ -130,6 +136,9 @@ export interface Part {
   instances: Instance[]
   status: Status
   doi?: string
+  doiSource?: DoiSource
+  /** URN, including the part-number component (e.g. urn:iso:std:oiml:60:2021:1). */
+  urn?: string
   relations: Relation[]
 }
 
@@ -150,6 +159,9 @@ export interface Edition {
   sustainabilityFramework?: 'People' | 'Prosperity' | 'Planet'
   highPriority?: boolean
   doi?: string
+  doiSource?: DoiSource
+  /** Edition-level URN (e.g. urn:iso:std:oiml:60:2021). */
+  urn?: string
   publishedAt?: string
   /** Parts (empty if single-document). */
   parts: Part[]
@@ -183,6 +195,8 @@ export interface Series {
   currentEdition?: Edition
   /** TC/SC from the current edition. */
   tc?: string
+  /** Work-level URN (e.g. urn:iso:std:oiml:60). */
+  urn?: string
 }
 
 export interface Dataset {

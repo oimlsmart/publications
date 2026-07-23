@@ -28,6 +28,7 @@ const workSlug = (p ?? ed).slug
     <link rel="alternate" type="application/yaml" href={inst.localYamlPath} />
     {inst.localPdfPath && <link rel="alternate" type="application/pdf" href={inst.localPdfPath} />}
     <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${inst.slug}`} />
+    {inst.urn && <link rel="alternate" type="text/plain" href={inst.urn} title="URN" />}
     <meta property="og:title" content={inst.docid} />
     <meta property="og:description" content={(p?.scope ?? ed.scope) ?? title} />
     {inst.doi && <meta name="citation_doi" content={inst.doi} />}
@@ -35,7 +36,7 @@ const workSlug = (p ?? ed).slug
     <script type="application/ld+json" set:html={JSON.stringify({
       '@context': 'https://schema.org',
       '@type': ['Standard', 'CreativeWork'],
-      '@id': `${BASE_PATH}/pub/${inst.slug}/`,
+      '@id': inst.urn ?? `${BASE_PATH}/pub/${inst.slug}/`,
       identifier: inst.docid,
       name: title,
       description: p?.scope ?? ed.scope,
@@ -101,7 +102,18 @@ const workSlug = (p ?? ed).slug
           {ed.year > 0 && (<div class="flex justify-between gap-2"><dt class="text-ink-soft uppercase tracking-wide">Published</dt><dd>{ed.year}</dd></div>)}
           {ed.tc && (<div class="flex justify-between gap-2"><dt class="text-ink-soft uppercase tracking-wide">TC / SC</dt><dd>{ed.tc}</dd></div>)}
           {inst.fileSize && (<div class="flex justify-between gap-2"><dt class="text-ink-soft uppercase tracking-wide">PDF size</dt><dd>{Math.round(inst.fileSize / 1024 / 1024 * 10) / 10} MB</dd></div>)}
-          {inst.doi && (<div class="flex justify-between gap-2"><dt class="text-ink-soft uppercase tracking-wide">DOI</dt><dd><a class="text-accent hover:underline" href={`https://doi.org/${inst.doi}`}>{inst.doi}</a></dd></div>)}
+          {inst.doi && (
+            <div class="flex justify-between gap-2">
+              <dt class="text-ink-soft uppercase tracking-wide">DOI{inst.doiSource === 'derived' && ' (derived)'}</dt>
+              <dd><a class="text-accent hover:underline" href={`https://doi.org/${inst.doi}`}>{inst.doi}</a></dd>
+            </div>
+          )}
+          {inst.urn && (
+            <div class="flex justify-between gap-2">
+              <dt class="text-ink-soft uppercase tracking-wide">URN</dt>
+              <dd class="font-mono text-[0.65rem] break-all">{inst.urn}</dd>
+            </div>
+          )}
         </dl>
       </div>
 

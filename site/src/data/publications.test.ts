@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { loadDataset } from '../data/publications'
+import { loadDataset, deriveDoi, deriveUrn } from '../data/publications'
 import { ALL_DOCTYPES } from '../data/types'
 
+// Loading parses ~5,700 YAMLs at build time — first call takes ~5–10s.
+// Subsequent calls hit the module-level memo and return instantly.
+const LOAD_TIMEOUT = 60000
+
 describe('loadDataset', () => {
-  it('returns a dataset with series', () => {
+  it('returns a dataset with series', { timeout: LOAD_TIMEOUT }, () => {
     const data = loadDataset()
     expect(data.series.length).toBeGreaterThan(100)
   })
@@ -66,5 +70,55 @@ describe('loadDataset', () => {
       if (foundPdf) break
     }
     expect(foundPdf).toBe(true)
+  })
+
+  it('derives DOIs following the OIML 10.63493 pattern', () => {
+    expect(deriveDoi({ doctype: 'recommendation', docnumber: '60', year: 2021 }))
+      .toBe('10.63493/r060.2021.en')
+    expect(deriveDoi({ doctype: 'document', docnumber: '1', year: 2020 }))
+      .toBe('10.63493/d001.2020.en')
+    expect(deriveDoi({ doctype: 'basic-publication', docnumber: '146', year: 2007 }))
+      .toBe('10.63493/b146.2007.en')
+    // Missing year → cannot derive
+    expect(deriveDoi({ doctype: 'recommendation', docnumber: '60' })).toBeUndefined()
+  })
+
+  it('derives hierarchical URNs at every level', () => {
+    expect(deriveUrn({ doctype: 'recommendation', docnumber: '60' }))
+      .toBe('urn:iso:std:oiml:60')
+    expect(deriveUrn({ doctype: 'recommendation', docnumber: '60', year: 2021 }))
+      .toBe('urn:iso:std:oiml:60:2021')
+    expect(deriveUrn({ doctype: 'recommendation', docnumber: '60', year: 2021, partNumber: '1' }))
+      .toBe('urn:iso:std:oiml:60:2021:1')
+    expect(deriveUrn({ doctype: 'recommendation', docnumber: '60', year: 2021, partNumber: '1', language: 'eng' }))
+      .toBe('urn:iso:std:oiml:60:2021:1:en')
+  })
+
+  it('every series, edition, and instance has a URN', () => {
+    const data = loadDataset()
+    expect(data.series.length).toBeGreaterThan(100)
+    for (const s of data.series) {
+      expect(s.urn, `series ${s.docid}`).toBeTruthy()
+      expect(s.urn).toMatch(/^urn:iso:std:oiml:\d+$/)
+      for (const ed of s.editions) {
+        expect(ed.urn, `edition ${ed.docid}`).toBeTruthy()
+        expect(ed.urn).toMatch(/^urn:iso:std:oiml:\d+:\d{4}$/)
+      }
+    }
+  })
+
+  it('every edition has a DOI (upstream or derived)', () => {
+    const data = loadDataset()
+    let checked = 0
+    for (const s of data.series) {
+      for (const ed of s.editions) {
+        if (ed.year > 0) {
+          expect(ed.doi, `edition ${ed.docid}`).toBeTruthy()
+          expect(ed.doiSource).toMatch(/^(upstream|derived)$/)
+          checked++
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(100)
   })
 })
