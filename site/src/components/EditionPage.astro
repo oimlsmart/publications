@@ -15,6 +15,7 @@ const hasParts = ed.parts.length > 0
 <Base title={ed.docid} currentPath={`/pub/${ed.slug}`}>
   <slot name="head" slot="head">
     <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${ed.slug}`} />
+    {ed.urn && <link rel="alternate" type="text/plain" href={ed.urn} title="URN" />}
     <meta property="og:title" content={ed.docid} />
     <meta property="og:description" content={ed.scope ?? title} />
     {ed.doi && <meta name="citation_doi" content={ed.doi} />}
@@ -22,7 +23,7 @@ const hasParts = ed.parts.length > 0
     <script type="application/ld+json" set:html={JSON.stringify({
       '@context': 'https://schema.org',
       '@type': ['Standard', 'CreativeWork'],
-      '@id': `${BASE_PATH}/pub/${ed.slug}/`,
+      '@id': ed.urn ?? `${BASE_PATH}/pub/${ed.slug}/`,
       identifier: ed.docid,
       name: title,
       description: ed.scope,
@@ -45,6 +46,20 @@ const hasParts = ed.parts.length > 0
       </div>
       <h1 class="font-serif text-3xl font-medium leading-tight tracking-tight mb-2">{title}</h1>
       {ed.scope && <p class="text-ink-soft max-w-3xl">{ed.scope}</p>}
+      <dl class="grid sm:grid-cols-2 gap-3 text-sm font-mono mt-4">
+        {ed.doi && (
+          <div>
+            <dt class="text-ink-soft uppercase text-xs tracking-wide">DOI{ed.doiSource === 'derived' && ' (derived)'}</dt>
+            <dd><a class="text-accent hover:underline" href={`https://doi.org/${ed.doi}`}>{ed.doi}</a></dd>
+          </div>
+        )}
+        {ed.urn && (
+          <div>
+            <dt class="text-ink-soft uppercase text-xs tracking-wide">URN</dt>
+            <dd class="break-all">{ed.urn}</dd>
+          </div>
+        )}
+      </dl>
     </div>
   </section>
 

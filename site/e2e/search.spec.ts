@@ -28,16 +28,16 @@ test('browse filter works', async ({ page }) => {
 
 test('search loads Pagefind', async ({ page }) => {
   await page.goto('/publications/search/')
-  // Wait for Pagefind input to appear
-  await page.waitForSelector('#pf-search input[type="search"]', { timeout: 10000 })
-  await expect(page.locator('#pf-search input[type="search"]')).toBeVisible()
+  // Wait for Pagefind input to appear (Pagefind uses type="text", not type="search")
+  await page.waitForSelector('#pf-search input.pagefind-ui__search-input', { timeout: 15000 })
+  await expect(page.locator('#pf-search input.pagefind-ui__search-input')).toBeVisible()
 })
 
 test('search with query returns results', async ({ page }) => {
   await page.goto('/publications/search/?q=load+cell')
-  await page.waitForSelector('#pf-search input[type="search"]', { timeout: 10000 })
+  await page.waitForSelector('#pf-search input.pagefind-ui__search-input', { timeout: 15000 })
   // Should have results
-  await page.waitForSelector('.pagefind-ui__result', { timeout: 10000 })
+  await page.waitForSelector('.pagefind-ui__result', { timeout: 15000 })
   const results = page.locator('.pagefind-ui__result')
   expect(await results.count()).toBeGreaterThan(0)
 })

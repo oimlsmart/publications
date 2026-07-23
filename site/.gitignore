@@ -2,8 +2,11 @@ node_modules/
 dist/
 .astro/
 *.log
+test-results/
+playwright-report/
 
 # Dev symlinks — created locally for `npm run dev` to serve pdfs/ and data/.
 # In CI, the workflow rsyncs them into dist/ at build time.
 public/pdfs
 public/data
+public/pagefind

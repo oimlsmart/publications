@@ -77,7 +77,7 @@ onMounted(load)
       <a :href="pdfUrl" download class="text-xs font-mono text-accent hover:underline">⬇ Download PDF</a>
     </div>
     <div class="overflow-auto bg-gray-200 dark:bg-gray-900" style="height: 75vh">
-      <canvas ref="canvas" class="mx-auto block shadow-lg" />
+      <canvas id="pdf-canvas" ref="canvas" class="mx-auto block shadow-lg" />
     </div>
     <p v-if="loading" class="px-3 py-2 text-sm text-ink-soft font-mono">Loading PDF…</p>
     <p v-if="errorMsg" class="px-3 py-2 text-sm text-red-700 dark:text-red-300 font-mono">

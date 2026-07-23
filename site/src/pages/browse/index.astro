@@ -44,8 +44,18 @@ const stats = data.stats
 
   <section class="px-8 py-6">
     <div class="max-w-7xl mx-auto">
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {allSeries.map(s => <PubCard series={s} />)}
+      <div id="pub-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {allSeries.map(s => (
+          <div
+            class="pub-card-wrapper"
+            data-status={s.currentEdition?.status ?? 'unknown'}
+            data-docnumber={parseInt(s.docnumber) || 0}
+            data-title={(s.title.eng ?? s.title.fra ?? s.docid).toLowerCase()}
+            data-year={s.currentEdition?.year ?? 0}
+          >
+            <PubCard series={s} />
+          </div>
+        ))}
       </div>
     </div>
   </section>

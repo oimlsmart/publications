@@ -34,17 +34,18 @@ export const GET: APIRoute = ({ props }) => {
     const s = p.series
     payload = {
       ...base,
-      '@id': `${BASE_PATH}/pub/${s.slug}/`,
+      '@id': s.urn ?? `${BASE_PATH}/pub/${s.slug}/`,
       identifier: s.docid,
       name: s.title.eng ?? s.title.fra ?? s.docid,
       description: s.scope,
       hasEdition: s.editions.map((e: any) => `${BASE_PATH}/pub/${e.slug}/`),
+      urn: s.urn,
     }
   } else if (p.kind === 'edition') {
     const ed = p.edition
     payload = {
       ...base,
-      '@id': `${BASE_PATH}/pub/${ed.slug}/`,
+      '@id': ed.urn ?? `${BASE_PATH}/pub/${ed.slug}/`,
       identifier: ed.docid,
       name: ed.title.eng ?? ed.title.fra ?? ed.docid,
       description: ed.scope,
@@ -53,22 +54,27 @@ export const GET: APIRoute = ({ props }) => {
       isPartOf: `${BASE_PATH}/pub/${p.series.slug}/`,
       hasPart: ed.parts.map((part: any) => `${BASE_PATH}/pub/${part.slug}/`),
       doi: ed.doi,
+      doiSource: ed.doiSource,
+      urn: ed.urn,
     }
   } else if (p.kind === 'part') {
     const part = p.part
     payload = {
       ...base,
-      '@id': `${BASE_PATH}/pub/${part.slug}/`,
+      '@id': part.urn ?? `${BASE_PATH}/pub/${part.slug}/`,
       identifier: part.docid,
       name: part.title.eng ?? part.title.fra ?? part.docid,
       description: part.scope,
       isPartOf: `${BASE_PATH}/pub/${p.edition.slug}/`,
+      doi: part.doi,
+      doiSource: part.doiSource,
+      urn: part.urn,
     }
   } else {
     const inst = p.instance
     payload = {
       ...base,
-      '@id': `${BASE_PATH}/pub/${inst.slug}/`,
+      '@id': inst.urn ?? `${BASE_PATH}/pub/${inst.slug}/`,
       identifier: inst.docid,
       inLanguage: inst.language,
       datePublished: inst.publishedAt,
@@ -79,6 +85,8 @@ export const GET: APIRoute = ({ props }) => {
       }] : undefined,
       isPartOf: `${BASE_PATH}/pub/${(p.part ?? p.edition).slug}/`,
       doi: inst.doi,
+      doiSource: inst.doiSource,
+      urn: inst.urn,
     }
   }
   return new Response(JSON.stringify(payload, null, 2), {
