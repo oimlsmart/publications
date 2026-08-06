@@ -61,8 +61,9 @@ test('theme toggle works', async ({ page }) => {
   await page.goto('/publications/')
   const html = page.locator('html')
   const initialClass = await html.getAttribute('class')
-  // Click theme toggle button
-  const toggle = page.locator('button[aria-label="Toggle dark mode"]')
+  // Click the shell's visible theme toggle button (one also rides the
+  // mobile nav, hidden at this viewport)
+  const toggle = page.locator('button[data-testid="theme-toggle"]:visible').first()
   await toggle.click()
   const newClass = await html.getAttribute('class')
   expect(newClass).not.toBe(initialClass)
