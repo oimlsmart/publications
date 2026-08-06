@@ -1,61 +1,37 @@
 ---
+/**
+ * The publications site's base layout — wraps @oimlsmart/site-shell's
+ * Base (the federation chrome, TODO.fix/09) and keeps the local
+ * contract the pages already use (title/description props, the
+ * slot name="head" for pagefind and per-page assets). The minisite's
+ * own sections ride the shell's MinisiteNav; the federation header
+ * and footer come from the shell.
+ */
+import { Base as ShellBase, MinisiteNav } from '@oimlsmart/site-shell'
 import SITE from '../data/site-meta'
-import SiteNav from '../components/SiteNav.astro'
-import SiteFooter from '../components/SiteFooter.astro'
 import '../styles/app.css'
 
 interface Props {
   title?: string
   description?: string
+  /** Kept for call-site compatibility; the shell derives active state. */
   currentPath?: string
 }
 
-const { title, description, currentPath = '' } = Astro.props
+const NAV = [
+  { label: 'About', href: '/' },
+  { label: 'Browse', href: '/browse/' },
+  { label: 'Search', href: '/search/' },
+]
+
+const { title, description } = Astro.props
 const pageTitle = title ? `${title} · ${SITE.title}` : SITE.title
-const desc = description ?? SITE.description
 ---
 
-<!DOCTYPE html>
-<html lang={SITE.lang}>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-  />
-  <link rel="icon" type="image/svg+xml" href={`${SITE.basePath}/favicon.svg`} />
-  <link rel="apple-touch-icon" href={`${SITE.basePath}/apple-touch-icon.png`} />
-  <meta name="theme-color" content="#004996" />
-  <meta name="color-scheme" content="light dark" />
-  <title>{pageTitle}</title>
-  <meta name="description" content={desc} />
-
-  <script is:inline>
-    const t = localStorage.getItem('oiml-theme')
-    if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark')
-    }
-  </script>
-  <style is:global>
-    .logo-dark { display: none; }
-    .dark .logo-light { display: none; }
-    .dark .logo-dark { display: inline-block; }
-    .theme-icon-dark { display: none; }
-    .dark .theme-icon-light { display: none; }
-    .dark .theme-icon-dark { display: inline-block; }
-  </style>
-  <slot name="head" />
-</head>
-<body class="min-h-screen bg-paper-soft dark:bg-paper-deep text-ink dark:text-ink-light antialiased">
-  <SiteNav currentPath={currentPath} />
-
-  <main>
-    <slot />
-  </main>
-
-  <SiteFooter />
-</body>
-</html>
+<ShellBase title={pageTitle} description={description ?? SITE.description} siteTitle="OIML SMART">
+  <link rel="icon" type="image/svg+xml" href={`${SITE.basePath}/favicon.svg`} slot="head" />
+  <link rel="apple-touch-icon" href={`${SITE.basePath}/apple-touch-icon.png`} slot="head" />
+  <slot name="head" slot="head" />
+  <MinisiteNav sections={NAV} base="/publications" />
+  <slot />
+</ShellBase>

@@ -10,6 +10,8 @@ export default defineConfig({
   integrations: [sitemap(), vue()],
   vite: {
     plugins: [tailwindcss()],
+    // The vendored site-shell's islands resolve vue from the site root.
+    resolve: { dedupe: ['vue'] },
   },
   markdown: {
     shikiConfig: {

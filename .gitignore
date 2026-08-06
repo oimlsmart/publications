@@ -12,3 +12,4 @@ site/npm-debug.log*
 # tmp
 *.tmp
 tmp/
+vendor/

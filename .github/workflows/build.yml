@@ -3,6 +3,7 @@ name: build
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -23,6 +24,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Checkout the shell package (the chrome SSOT)
+        uses: actions/checkout@v4
+        with:
+          repository: oimlsmart/site-shell
+          path: vendor/site-shell
 
       - uses: actions/setup-node@v4
         with:
