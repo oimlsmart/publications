@@ -1,16 +1,14 @@
 ---
 import { BASE_PATH } from '../data/publications'
+import { pdfUrl } from '../data/urls'
 import PdfViewer from './PdfViewer.vue'
 
 interface Props {
   pdfPath: string
 }
 const { pdfPath } = Astro.props
-const pdfUrl = `${BASE_PATH}/pdfs/${pdfPath}`
+const url = pdfUrl(pdfPath)
 ---
 
-<!-- Load pdf.js v2.16.105 UMD build as a classic script -->
-<script is:inline src={`${BASE_PATH}/pdfjs/pdf.min.js`}></script>
-
-<!-- Vue island handles all viewer interaction -->
-<PdfViewer client:visible pdfUrl={pdfUrl} basePath={BASE_PATH} />
+<!-- Vue island injects and awaits the local pdf.js UMD build itself (loadPdfJs) -->
+<PdfViewer client:visible pdfUrl={url} basePath={BASE_PATH} />

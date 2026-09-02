@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { loadPdfJs } from './loadPdfJs'
 
 const props = defineProps<{
   pdfUrl: string
@@ -11,33 +12,19 @@ const pageLabel = ref('1 / —')
 const loading = ref(true)
 const errorMsg = ref('')
 const currentPage = ref(1)
-let docPromise: Promise<any> | null = null
 let pdfDoc: any = null
 
-function load() {
-  // pdf.js v2.16.105 is loaded via a <script> tag in the parent Astro component
-  // and attaches as window.pdfjsLib
-  const pdfjsLib = (window as any).pdfjsLib
-  if (!pdfjsLib) {
-    setTimeout(load, 50)
-    return
+async function load() {
+  try {
+    const pdfjsLib = await loadPdfJs(props.basePath)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = props.basePath + '/pdfjs/pdf.worker.min.js'
+    pdfDoc = await pdfjsLib.getDocument(props.pdfUrl).promise
+    await render(currentPage.value)
+    loading.value = false
+  } catch (e: any) {
+    loading.value = false
+    errorMsg.value = e?.message || String(e)
   }
-
-  pdfjsLib.GlobalWorkerOptions.workerSrc = props.basePath + '/pdfjs/pdf.worker.min.js'
-
-  docPromise = pdfjsLib.getDocument(props.pdfUrl).promise
-  docPromise
-    .then((doc: any) => {
-      pdfDoc = doc
-      return render(currentPage.value)
-    })
-    .then(() => {
-      loading.value = false
-    })
-    .catch((e: any) => {
-      loading.value = false
-      errorMsg.value = e?.message || String(e)
-    })
 }
 
 async function render(pageNum: number) {

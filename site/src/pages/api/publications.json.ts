@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro'
-import { loadDataset, BASE_PATH } from '../../data/publications.js'
+import { BASE_PATH, loadDataset } from '../../data/publications.js'
+import { pubUrl } from '../../data/urls'
 
 export const GET: APIRoute = () => {
   const data = loadDataset()
   const records = data.series.map(s => ({
     id: s.slug,
     slug: s.slug,
-    url: `${BASE_PATH}/pub/${s.slug}/`,
+    url: pubUrl(s.slug),
     docid: s.docid,
     doctype: s.doctype,
     docnumber: s.docnumber,
@@ -17,7 +18,7 @@ export const GET: APIRoute = () => {
     editions: s.editions.map(ed => ({
       id: ed.slug,
       slug: ed.slug,
-      url: `${BASE_PATH}/pub/${ed.slug}/`,
+      url: pubUrl(ed.slug),
       docid: ed.docid,
       year: ed.year,
       status: ed.status,
@@ -25,18 +26,18 @@ export const GET: APIRoute = () => {
       parts: ed.parts.map(p => ({
         id: p.slug,
         slug: p.slug,
-        url: `${BASE_PATH}/pub/${p.slug}/`,
+        url: pubUrl(p.slug),
         docid: p.docid,
         partNumber: p.partNumber,
         title: p.title.eng ?? p.title.fra ?? p.docid,
         instances: p.instances.map(i => ({
-          id: i.slug, slug: i.slug, url: `${BASE_PATH}/pub/${i.slug}/`,
+          id: i.slug, slug: i.slug, url: pubUrl(i.slug),
           docid: i.docid, language: i.language,
           pdf: i.localPdfPath, size: i.fileSize,
         })),
       })),
       instances: ed.instances.map(i => ({
-        id: i.slug, slug: i.slug, url: `${BASE_PATH}/pub/${i.slug}/`,
+        id: i.slug, slug: i.slug, url: pubUrl(i.slug),
         docid: i.docid, language: i.language,
         pdf: i.localPdfPath, size: i.fileSize,
       })),

@@ -1,8 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro'
 import { loadDataset, BASE_PATH } from '../../data/publications'
-import { ALL_DOCTYPES, DOCTYPE_LABELS, type Status } from '../../data/types'
+import { ALL_DOCTYPES, DOCTYPE_LABELS } from '../../data/types'
 import PubCard from '../../components/PubCard.astro'
+import BrowseToolbar from '../../components/BrowseToolbar.astro'
 
 export async function getStaticPaths() {
   return ALL_DOCTYPES.map(dt => ({ params: { doctype: dt } }))
@@ -12,12 +13,6 @@ const { doctype } = Astro.params as { doctype: typeof ALL_DOCTYPES[number] }
 const data = loadDataset()
 const series = (data.byDoctype[doctype] ?? []).sort((a, b) => parseInt(a.docnumber) - parseInt(b.docnumber))
 const label = DOCTYPE_LABELS[doctype]
-
-const statusCounts: Record<string, number> = { 'in-force': 0, 'superseded': 0, 'withdrawn': 0 }
-for (const s of series) {
-  const st = s.currentEdition?.status ?? 'unknown'
-  statusCounts[st] = (statusCounts[st] ?? 0) + 1
-}
 ---
 
 <Base title={label.plural} currentPath={`/browse/${doctype}`}>
@@ -37,25 +32,7 @@ for (const s of series) {
     </div>
   </section>
 
-  <section class="sticky top-14 z-50 px-8 py-3 border-b border-rule bg-paper-soft/95 dark:bg-paper-deep/95 backdrop-blur">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-2 text-sm">
-      <span class="font-mono text-[0.625rem] uppercase tracking-wide text-ink-muted mr-1">Status:</span>
-      <button data-status-filter="all" class="px-2.5 py-1 text-xs font-mono border border-rule rounded-sm hover:border-accent transition-colors status-filter status-filter--active">All ({series.length})</button>
-      {Object.entries(statusCounts).filter(([, n]) => n > 0).map(([st, n]) => (
-        <button data-status-filter={st} class="px-2.5 py-1 text-xs font-mono border border-rule rounded-sm hover:border-accent transition-colors status-filter">
-          {st === 'in-force' ? 'In force' : st === 'superseded' ? 'Superseded' : 'Withdrawn'} ({n})
-        </button>
-      ))}
-      <span class="flex-1"></span>
-      <span class="font-mono text-[0.625rem] uppercase tracking-wide text-ink-muted mr-1">Sort:</span>
-      <select id="sort-select" class="px-2 py-1 text-xs font-mono border border-rule rounded-sm bg-paper-soft dark:bg-paper-deep">
-        <option value="docnumber">Doc number</option>
-        <option value="title">Title A–Z</option>
-        <option value="year-desc">Newest first</option>
-        <option value="year-asc">Oldest first</option>
-      </select>
-    </div>
-  </section>
+  <BrowseToolbar series={series} />
 
   <section class="px-8 py-6">
     <div class="max-w-7xl mx-auto">
@@ -77,58 +54,4 @@ for (const s of series) {
       </p>
     </div>
   </section>
-
-  <style is:global>
-    .status-filter--active {
-      border-color: var(--color-brand-500, #1a6fc2);
-      color: var(--color-brand-600, #004996);
-      font-weight: 600;
-      background: var(--color-brand-50, #f0f6ff);
-    }
-    .dark .status-filter--active {
-      background: rgba(26, 111, 194, 0.15);
-    }
-  </style>
-
-  <script>
-    const buttons = document.querySelectorAll('.status-filter')
-    const grid = document.getElementById('pub-grid')
-    const cards = grid ? Array.from(grid.querySelectorAll('.pub-card-wrapper')) : []
-    const noResults = document.getElementById('no-results')
-    const sortSelect = document.getElementById('sort-select') as HTMLSelectElement | null
-
-    function setStatus(status: string) {
-      let visible = 0
-      cards.forEach((card) => {
-        const el = card as HTMLElement
-        const show = status === 'all' || el.dataset.status === status
-        el.style.display = show ? '' : 'none'
-        if (show) visible++
-      })
-      if (noResults) noResults.classList.toggle('hidden', visible > 0)
-    }
-
-    function sortCards(by: string) {
-      if (!grid) return
-      const sorted = [...cards].sort((a, b) => {
-        const ae = a as HTMLElement, be = b as HTMLElement
-        if (by === 'docnumber') return parseInt(ae.dataset.docnumber || '0') - parseInt(be.dataset.docnumber || '0')
-        if (by === 'title') return (ae.dataset.title || '').localeCompare(be.dataset.title || '')
-        if (by === 'year-desc') return parseInt(be.dataset.year || '0') - parseInt(ae.dataset.year || '0')
-        if (by === 'year-asc') return parseInt(ae.dataset.year || '0') - parseInt(be.dataset.year || '0')
-        return 0
-      })
-      sorted.forEach(c => grid.appendChild(c))
-    }
-
-    buttons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        buttons.forEach(b => b.classList.remove('status-filter--active'))
-        btn.classList.add('status-filter--active')
-        setStatus(btn.dataset.statusFilter || 'all')
-      })
-    })
-
-    sortSelect?.addEventListener('change', () => sortCards(sortSelect.value))
-  </script>
 </Base>

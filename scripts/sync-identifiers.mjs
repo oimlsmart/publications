@@ -6,15 +6,16 @@
 // DOI:  ext.doi  = 10.63493/<letter><NNN>.<year>.en   (only when missing)
 // URN:  added as docidentifier[].{ content, type: 'urn' }
 //
-// Usage: node scripts/sync-identifiers.mjs /path/to/relaton-data-oiml
+// The derivation rules are imported from site/src/data/identifiers.ts —
+// the same single source of truth the site build uses (Node ≥ 23.6 strips
+// the erasable type syntax natively; no build step needed).
 //
-// Resolves the `yaml` package from site/node_modules (the repo has no
-// top-level package.json). Run from anywhere — the script finds the
-// package via the known relative layout.
+// Usage: node scripts/sync-identifiers.mjs /path/to/relaton-data-oiml
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { deriveDoi, deriveUrn, languageFromId, DOCTYPE_LETTER, DOCTYPE_FROM_LETTER } from '../site/src/data/identifiers.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 // scripts/ → ../site/node_modules/yaml
@@ -28,42 +29,6 @@ if (!SRC) {
 }
 const DATA_DIR = join(SRC, 'data')
 const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.yaml'))
-
-const DOI_PREFIX = '10.63493'
-const URN_PREFIX = 'urn:iso:std:oiml'
-
-const DOCTYPE_LETTER = {
-  recommendation: 'r',
-  'basic-publication': 'b',
-  document: 'd',
-  guide: 'g',
-  'expert-report': 'e',
-  'seminar-report': 's',
-  vocabulary: 'v',
-}
-
-// Reverse map: leading id letter → doctype. relaton models translation as a
-// first-class doctype; OIML only has R/D/G/B/V/E/S, so we infer the parent
-// OIML doctype from the id's leading character (R4-1972-ara → 'r' → recommendation).
-const DOCTYPE_FROM_LETTER = Object.fromEntries(
-  Object.entries(DOCTYPE_LETTER).map(([dt, letter]) => [letter, dt])
-)
-
-const LANG_MAP = {
-  E: 'en', F: 'fr', A: 'ar',
-  Eng: 'en', Fra: 'fr', Ara: 'ar',
-  Sr: 'sr', Uk: 'uk', Srp: 'sr', Ukr: 'uk',
-  Deu: 'de', Rus: 'ru', Pol: 'pl', Por: 'pt', Spa: 'es',
-  Zho: 'zh', Chi: 'zh', Cn: 'zh',
-  Fa: 'fa', Fas: 'fa', Fara: 'fa',
-  Ro: 'ro',
-}
-const LANG_SUFFIX_RE = /-(E|F|A|Sr|Uk|Eng|Fra|Ara|Deu|Rus|Pol|Por|Spa|Zho|Chi|Fa|Fas|Fara|Cn|Ua|Ro)$/i
-
-function languageFromId(id) {
-  const m = id.match(LANG_SUFFIX_RE)
-  return m ? (LANG_MAP[m[1]] ?? null) : null
-}
 
 function yearOf(yaml, docid) {
   const d = yaml.date?.find?.(x => x?.type === 'published')
@@ -87,8 +52,7 @@ function identInput(yaml) {
   // relaton models translation as a doctype; OIML doesn't — infer parent
   // OIML doctype from the id's leading letter.
   if (!doctype && doctypeRaw === 'translation') {
-    const letter = String(yaml.id ?? '').charAt(0).toLowerCase()
-    doctype = DOCTYPE_FROM_LETTER[letter]
+    doctype = DOCTYPE_FROM_LETTER[String(yaml.id ?? '').charAt(0).toLowerCase()]
   }
   const docnumber = String(yaml.docnumber ?? '')
   const docid = yaml.docidentifier?.find?.(d => d?.primary)?.content
@@ -100,23 +64,6 @@ function identInput(yaml) {
     partNumber: partOf(docid),
     language: languageFromId(yaml.id ?? ''),
   }
-}
-
-function deriveDoi(i) {
-  if (!i.doctype || !i.docnumber || !i.year) return undefined
-  const letter = DOCTYPE_LETTER[i.doctype]
-  if (!letter) return undefined
-  const num = i.docnumber.padStart(3, '0')
-  return `${DOI_PREFIX}/${letter}${num}.${i.year}.en`
-}
-
-function deriveUrn(i) {
-  if (!i.doctype || !i.docnumber) return undefined
-  const parts = [URN_PREFIX, i.docnumber]
-  if (i.year) parts.push(String(i.year))
-  if (i.partNumber) parts.push(i.partNumber)
-  if (i.language) parts.push(i.language)
-  return parts.join(':')
 }
 
 let read = 0, doiAdded = 0, doiSkipped = 0, urnAdded = 0, urnSkipped = 0, errors = 0
