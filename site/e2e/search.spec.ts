@@ -64,7 +64,13 @@ test('theme toggle works', async ({ page }) => {
   // Click the shell's visible theme toggle button (one also rides the
   // mobile nav, hidden at this viewport)
   const toggle = page.locator('button[data-testid="theme-toggle"]:visible').first()
-  await toggle.click()
-  const newClass = await html.getAttribute('class')
+  // The toggle is a Vue island — its click handler attaches async. Retry
+  // until the class flips (a click before hydration is a no-op).
+  let newClass = initialClass
+  for (let i = 0; i < 20 && newClass === initialClass; i++) {
+    await toggle.click()
+    await page.waitForTimeout(150)
+    newClass = await html.getAttribute('class')
+  }
   expect(newClass).not.toBe(initialClass)
 })

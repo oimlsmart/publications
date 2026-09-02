@@ -4,6 +4,8 @@ import type { Edition, Instance, Part, Series } from '../data/types'
 import { BASE_PATH } from '../data/publications'
 import { pubUrl, apiUrl } from '../data/urls'
 import { toJsonLd } from '../data/record'
+import PageHero from './PageHero.astro'
+import PartBadge from './PartBadge.astro'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
 import RelationList from './RelationList.astro'
@@ -38,20 +40,21 @@ const workSlug = (p ?? ed).slug
     <script type="application/ld+json" set:html={JSON.stringify(toJsonLd({ series, edition: ed, part: p, instance: inst }))} />
   </slot>
 
-  <section class="relative px-8 pt-10 pb-6 border-b border-rule bp-grid bp-noise">
-    <div class="max-w-7xl mx-auto relative z-10">
-      <a href={pubUrl(workSlug)} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {parent.docid}</a>
-      <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
-        <DoctypeChip doctype={series.doctype} />
-        {p && <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">Part {p.partNumber}</span>}
-        <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">{inst.language}</span>
-        <span class="text-xs text-ink-soft">{LANG_LABELS[inst.language] ?? inst.language}</span>
-        <StatusBadge status={parent.status} />
-      </div>
-      <h1 class="font-serif text-3xl font-medium leading-tight tracking-tight mb-2">{title}</h1>
-      <p class="font-mono text-sm text-ink-soft">{inst.docid}</p>
+  <PageHero
+    size="sm"
+    container="lg"
+    title={title}
+    back={{ href: pubUrl(workSlug), label: parent.docid }}
+  >
+    <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
+      <DoctypeChip doctype={series.doctype} />
+      {p && <PartBadge partNumber={p.partNumber} />}
+      <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">{inst.language}</span>
+      <span class="text-xs text-ink-soft">{LANG_LABELS[inst.language] ?? inst.language}</span>
+      <StatusBadge status={parent.status} />
     </div>
-  </section>
+    <p class="font-mono text-sm text-ink-soft">{inst.docid}</p>
+  </PageHero>
 
   <div class="max-w-7xl mx-auto px-8 py-6 grid lg:grid-cols-[1fr_22rem] gap-6">
     <div>

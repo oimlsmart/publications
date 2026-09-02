@@ -1,0 +1,72 @@
+---
+// PageHero — the one owner of the blueprint page header: grid-paper
+// background, section anchor (§ num · label · ——— · coord), serif title,
+// lead, optional back-link. Pages contribute their own chips/stats via
+// the default slot.
+import { BASE_PATH } from '../data/publications'
+
+interface Props {
+  /** Anchor glyph after § (e.g. 'B', 'OIML', a docnumber, 'ERR'). */
+  num?: string
+  /** Anchor label text (e.g. 'Browse', 'Search'). */
+  label?: string
+  /** Right-aligned coordinate readout (e.g. '230 publications'). */
+  coord?: string
+  /** Plain-text title. For styled titles use `titleHtml`. */
+  title?: string
+  /** Title as HTML (rendered with set:html). */
+  titleHtml?: string
+  lead?: string
+  /** Lead as HTML (rendered with set:html). */
+  leadHtml?: string
+  /** Size/weight scale: 'sm' pub pages · 'md' section pages · 'lg' landing. */
+  size?: 'sm' | 'md' | 'lg'
+  /** Use the major (wider) grid ruling. */
+  major?: boolean
+  /** Content container: 'sm' max-w-4xl · 'md' max-w-6xl (default) · 'lg' max-w-7xl. */
+  container?: 'sm' | 'md' | 'lg'
+  back?: { href: string; label: string }
+}
+
+const {
+  num, label, coord,
+  title, titleHtml, lead, leadHtml,
+  size = 'md', major = false, container = 'md', back,
+} = Astro.props
+
+const containerCls = { sm: 'max-w-4xl', md: 'max-w-6xl', lg: 'max-w-7xl' }[container]
+
+const scale = {
+  sm: 'pt-10 pb-6',
+  md: 'pt-12 pb-8',
+  lg: 'pt-16 pb-12',
+}[size]
+const titleCls = {
+  sm: 'font-serif text-3xl font-medium leading-tight tracking-tight mb-2',
+  md: 'font-serif text-4xl font-medium tracking-tight mb-3',
+  lg: 'font-serif text-[clamp(2.25rem,5.5vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.025em] mb-5 bp-reveal',
+}[size]
+---
+
+<section class={`relative px-8 ${scale} border-b border-rule bp-grid ${major ? 'bp-grid--major ' : ''}bp-noise`}>
+  <div class={`${containerCls} mx-auto relative z-10`}>
+    {(num || label || coord) && (
+      <div class={`bp-section-anchor ${size === 'lg' ? 'mb-5' : 'mb-3'}`}>
+        {num && <span class="bp-section-anchor__num">§ {num}</span>}
+        {label && <span>{label}</span>}
+        <span class="bp-section-anchor__line"></span>
+        {coord && <span class="bp-coord">{coord}</span>}
+      </div>
+    )}
+    {back && (
+      <a href={back.href} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {back.label}</a>
+    )}
+    {titleHtml
+      ? <h1 class={titleCls} set:html={titleHtml} />
+      : <h1 class={titleCls}>{title}</h1>}
+    {leadHtml
+      ? <p class="text-ink-soft max-w-2xl" set:html={leadHtml} />
+      : lead && <p class="text-ink-soft max-w-2xl">{lead}</p>}
+    <slot />
+  </div>
+</section>
