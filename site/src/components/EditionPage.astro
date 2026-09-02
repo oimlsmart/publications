@@ -4,6 +4,7 @@ import type { Edition, Series } from '../data/types'
 import { BASE_PATH } from '../data/publications'
 import { pubUrl, apiUrl } from '../data/urls'
 import { toJsonLd } from '../data/record'
+import PageHero from './PageHero.astro'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
 import RelationList from './RelationList.astro'
@@ -25,32 +26,32 @@ const hasParts = ed.parts.length > 0
     <script type="application/ld+json" set:html={JSON.stringify(toJsonLd({ series, edition: ed }))} />
   </slot>
 
-  <section class="relative px-8 pt-10 pb-6 border-b border-rule bp-grid bp-noise">
-    <div class="max-w-6xl mx-auto relative z-10">
-      <a href={pubUrl(series.slug)} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {series.docid}</a>
-      <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
-        <DoctypeChip doctype={series.doctype} />
-        <span class="font-mono text-sm text-ink-soft">{ed.docid}</span>
-        <StatusBadge status={ed.status} />
-      </div>
-      <h1 class="font-serif text-3xl font-medium leading-tight tracking-tight mb-2">{title}</h1>
-      {ed.scope && <p class="text-ink-soft max-w-3xl">{ed.scope}</p>}
-      <dl class="grid sm:grid-cols-2 gap-3 text-sm font-mono mt-4">
-        {ed.doi && (
-          <div>
-            <dt class="text-ink-soft uppercase text-xs tracking-wide">DOI{ed.doiSource === 'derived' && ' (derived)'}</dt>
-            <dd><a class="text-accent hover:underline" href={`https://doi.org/${ed.doi}`}>{ed.doi}</a></dd>
-          </div>
-        )}
-        {ed.urn && (
-          <div>
-            <dt class="text-ink-soft uppercase text-xs tracking-wide">URN</dt>
-            <dd class="break-all">{ed.urn}</dd>
-          </div>
-        )}
-      </dl>
+  <PageHero
+    size="sm"
+    title={title}
+    back={{ href: pubUrl(series.slug), label: series.docid }}
+    lead={ed.scope}
+  >
+    <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
+      <DoctypeChip doctype={series.doctype} />
+      <span class="font-mono text-sm text-ink-soft">{ed.docid}</span>
+      <StatusBadge status={ed.status} />
     </div>
-  </section>
+    <dl class="grid sm:grid-cols-2 gap-3 text-sm font-mono mt-2">
+      {ed.doi && (
+        <div>
+          <dt class="text-ink-soft uppercase text-xs tracking-wide">DOI{ed.doiSource === 'derived' && ' (derived)'}</dt>
+          <dd><a class="text-accent hover:underline" href={`https://doi.org/${ed.doi}`}>{ed.doi}</a></dd>
+        </div>
+      )}
+      {ed.urn && (
+        <div>
+          <dt class="text-ink-soft uppercase text-xs tracking-wide">URN</dt>
+          <dd class="break-all">{ed.urn}</dd>
+        </div>
+      )}
+    </dl>
+  </PageHero>
 
   <div class="max-w-6xl mx-auto px-8 py-6">
     {hasParts ? (

@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro'
 import { loadDataset, BASE_PATH } from '../data/publications'
 import { ALL_DOCTYPES, DOCTYPE_LABELS } from '../data/types'
+import PageHero from '../components/PageHero.astro'
 
 const data = loadDataset()
 const stats = data.stats
@@ -18,49 +19,45 @@ const fmt = (n: number, format: string) =>
 ---
 
 <Base currentPath="/">
-  <section class="relative px-8 pt-16 pb-12 border-b border-rule bp-grid bp-grid--major bp-noise">
-    <div class="max-w-6xl mx-auto relative z-10">
-      <div class="bp-section-anchor mb-5">
-        <span class="bp-section-anchor__num">§ OIML</span>
-        <span>Publications</span>
-        <span class="bp-section-anchor__line"></span>
-        <span class="bp-coord">Public mirror</span>
-      </div>
-      <h1 class="font-serif text-[clamp(2.25rem,5.5vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.025em] mb-5 bp-reveal">
-        Every <em class="italic font-normal text-accent">OIML publication</em>, in one archive
-      </h1>
-      <p class="text-[1.125rem] leading-[1.6] text-ink-soft max-w-2xl bp-reveal" style="--reveal-delay:80ms;">
-        Bibliographic data and PDFs for all OIML International Recommendations, Documents,
-        Guides, Vocabularies, Basic Publications, Expert Reports, and Seminar Reports — searchable,
-        cross-linked, and machine-readable.
-      </p>
+  <PageHero
+    num="OIML"
+    label="Publications"
+    coord="Public mirror"
+    size="lg"
+    major
+    titleHtml='Every <em class="italic font-normal text-accent">OIML publication</em>, in one archive'
+  >
+    <p class="text-[1.125rem] leading-[1.6] text-ink-soft max-w-2xl bp-reveal" style="--reveal-delay:80ms;">
+      Bibliographic data and PDFs for all OIML International Recommendations, Documents,
+      Guides, Vocabularies, Basic Publications, Expert Reports, and Seminar Reports — searchable,
+      cross-linked, and machine-readable.
+    </p>
 
-      <form id="hero-search" action={`${BASE_PATH}/search/`} method="get" class="mt-8 flex gap-2 bp-reveal" style="--reveal-delay:160ms;">
-        <input
-          type="text"
-          name="q"
-          placeholder="Search by title, doc number, or scope…"
-          aria-label="Search publications"
-          enterkeyhint="search"
-          class="flex-1 px-4 py-3 bg-paper dark:bg-paper-deep border border-rule rounded-sm focus:border-accent focus:outline-none"
-        />
-        <button type="submit" class="px-6 py-3 bg-accent text-paper-soft dark:text-paper-deep font-semibold rounded-sm hover:bg-brand-700 transition-colors">
-          Search
-        </button>
-      </form>
+    <form id="hero-search" action={`${BASE_PATH}/search/`} method="get" class="mt-8 flex gap-2 bp-reveal" style="--reveal-delay:160ms;">
+      <input
+        type="text"
+        name="q"
+        placeholder="Search by title, doc number, or scope…"
+        aria-label="Search publications"
+        enterkeyhint="search"
+        class="flex-1 px-4 py-3 bg-paper dark:bg-paper-deep border border-rule rounded-sm focus:border-accent focus:outline-none"
+      />
+      <button type="submit" class="px-6 py-3 bg-accent text-paper-soft dark:text-paper-deep font-semibold rounded-sm hover:bg-brand-700 transition-colors">
+        Search
+      </button>
+    </form>
 
-      <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-px bg-rule border border-rule rounded-md overflow-hidden bp-reveal" style="--reveal-delay:240ms;">
-        {heroStats.map(s => (
-          <a href={`${BASE_PATH}/browse/`} class="bg-paper-soft dark:bg-paper p-5 text-center hover:bg-paper dark:hover:bg-paper-deep transition-colors">
-            <div class="bp-metric">
-              <span class="bp-metric__value block text-3xl font-serif text-ink">{fmt(s.value, s.format)}</span>
-              <span class="bp-metric__label text-xs font-mono uppercase tracking-wide text-ink-soft mt-1 block">{s.label}</span>
-            </div>
-          </a>
-        ))}
-      </div>
+    <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-px bg-rule border border-rule rounded-md overflow-hidden bp-reveal" style="--reveal-delay:240ms;">
+      {heroStats.map(s => (
+        <a href={`${BASE_PATH}/browse/`} class="bg-paper-soft dark:bg-paper p-5 text-center hover:bg-paper dark:hover:bg-paper-deep transition-colors">
+          <div class="bp-metric">
+            <span class="bp-metric__value block text-3xl font-serif text-ink">{fmt(s.value, s.format)}</span>
+            <span class="bp-metric__label text-xs font-mono uppercase tracking-wide text-ink-soft mt-1 block">{s.label}</span>
+          </div>
+        </a>
+      ))}
     </div>
-  </section>
+  </PageHero>
 
   <section class="px-8 py-12 border-b border-rule">
     <div class="max-w-6xl mx-auto">

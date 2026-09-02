@@ -1,9 +1,9 @@
 ---
 import type { Series } from '../data/types'
-import { BASE_PATH } from '../data/publications'
 import { pubUrl } from '../data/urls'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
+import HighPriorityBadge from './HighPriorityBadge.astro'
 
 interface Props {
   series: Series
@@ -14,32 +14,44 @@ const title = series.title.eng ?? series.title.fra ?? series.docid
 const url = pubUrl(series.slug)
 const langs = series.currentEdition?.languages() ?? []
 const totalPdfs = series.editions.reduce((sum, ed) => sum + ed.instances.length + ed.parts.reduce((s, p) => s + p.instances.length, 0), 0)
+const parts = series.currentEdition?.parts.length ?? 0
+const shownLangs = langs.slice(0, 4)
+const extraLangs = langs.length - shownLangs.length
 ---
 
 <a
   href={url}
-  class="block border border-rule rounded-sm p-4 bg-paper-soft dark:bg-paper hover:border-accent hover:shadow-md transition-all"
+  class="group block border border-rule border-l-2 border-l-rule rounded-sm bg-paper-soft dark:bg-paper hover:border-accent hover:border-l-accent transition-colors"
 >
-  <div class="flex items-center gap-2 mb-2 flex-wrap">
-    <DoctypeChip doctype={series.doctype} />
-    <span class="font-mono text-xs text-ink-soft">{series.docid}</span>
-    {series.currentEdition && (
-      <StatusBadge status={series.currentEdition.status} />
-    )}
-    {series.highPriority && (
-      <span class="px-2 py-0.5 text-xs font-mono uppercase border border-amber-400 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded-sm">
-        ★ High priority
-      </span>
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2 flex-wrap">
+      <DoctypeChip doctype={series.doctype} />
+      {series.currentEdition && (
+        <StatusBadge status={series.currentEdition.status} />
+      )}
+      {series.highPriority && <HighPriorityBadge />}
+    </div>
+    <div class="font-mono text-xs text-ink-soft mb-1">{series.docid}</div>
+    <h3 class="font-serif text-lg leading-snug mb-1 group-hover:text-accent transition-colors">{title}</h3>
+    {series.scope && (
+      <p class="text-sm text-ink-soft line-clamp-2">{series.scope}</p>
     )}
   </div>
-  <h3 class="font-serif text-lg leading-snug mb-1">{title}</h3>
-  {series.scope && (
-    <p class="text-sm text-ink-soft line-clamp-2">{series.scope}</p>
-  )}
-  <div class="mt-3 flex items-center gap-4 text-xs text-ink-soft font-mono">
-    {series.editions.length > 0 && <span>{series.editions.length} edition{series.editions.length > 1 ? 's' : ''}</span>}
-    {langs.length > 0 && <span>{langs.length} lang</span>}
-    {totalPdfs > 0 && <span>{totalPdfs} PDF{totalPdfs > 1 ? 's' : ''}</span>}
-    {series.tc && <span>{series.tc}</span>}
+
+  <div class="border-t border-rule divide-y divide-rule text-[0.6875rem] font-mono text-ink-soft tabular-nums">
+    <div class="flex items-center gap-3 px-4 py-1.5">
+      {series.editions.length > 0 && <span><b class="text-ink">{series.editions.length}</b> ed.</span>}
+      {parts > 0 && <span><b class="text-ink">{parts}</b> part{parts > 1 ? 's' : ''}</span>}
+      {totalPdfs > 0 && <span><b class="text-ink">{totalPdfs}</b> PDF{totalPdfs > 1 ? 's' : ''}</span>}
+      {series.tc && <span class="ml-auto text-ink-muted">{series.tc}</span>}
+    </div>
+    {shownLangs.length > 0 && (
+      <div class="flex items-center gap-1.5 px-4 py-1.5 flex-wrap">
+        {shownLangs.map(l => (
+          <span class={`px-1 border rounded-sm ${l === 'eng' || l === 'fra' ? 'border-rule text-ink-soft' : 'border-accent/40 text-accent'}`}>{l.toUpperCase()}</span>
+        ))}
+        {extraLangs > 0 && <span class="text-ink-muted">+{extraLangs}</span>}
+      </div>
+    )}
   </div>
 </a>

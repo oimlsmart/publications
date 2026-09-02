@@ -73,9 +73,13 @@ duplicate the patterns.
   place the URL scheme is spelled out.
 - `site/src/data/record.ts` — schema.org JSON-LD serialization for all four
   record levels, shared by page components and the per-pub API.
+- `src/components/PageHero.astro` — the one owner of the blueprint page
+  header (grid, §-anchor, serif title, lead, back-link). Every page uses it.
 - `src/components/BrowseToolbar.astro` — shared browse filter/sort controls;
   owns the `.pub-card-wrapper` data-* DOM contract.
 - `src/components/loadPdfJs.ts` — idempotent pdf.js loader (promise seam).
+- `src/components/HighPriorityBadge.astro`, `PartBadge.astro` — micro-badges
+  alongside DoctypeChip/StatusBadge; never hand-roll badge spans inline.
 - `scripts/sync-identifiers.mjs` — idempotent YAML patcher that writes
   `ext.doi` + `docidentifier[type:urn]` into a local relaton-data-oiml
   checkout (for upstream contribution).

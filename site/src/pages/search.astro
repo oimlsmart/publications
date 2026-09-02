@@ -2,25 +2,19 @@
 import Base from '../layouts/Base.astro'
 import { BASE_PATH } from '../data/publications'
 import SearchBox from '../components/SearchBox.vue'
+import PageHero from '../components/PageHero.astro'
 ---
 
 <Base title="Search" currentPath="/search">
-  <section class="relative px-8 pt-12 pb-6 border-b border-rule bp-grid bp-grid--major bp-noise">
-    <div class="max-w-4xl mx-auto relative z-10">
-      <div class="bp-section-anchor mb-3">
-        <span class="bp-section-anchor__num">§ ?</span>
-        <span>Search</span>
-        <span class="bp-section-anchor__line"></span>
-        <span class="bp-coord">{'{'}Pagefind{'}'}</span>
-      </div>
-      <h1 class="font-serif text-4xl font-medium tracking-tight mb-4">Search publications</h1>
-      <p class="text-ink-soft mb-6 max-w-2xl">
-        Full-text search across every publication's title, scope, identifiers,
-        technical committee, and bibliographic metadata. Results link directly
-        to the matching publication page.
-      </p>
-    </div>
-  </section>
+  <PageHero
+    num="?"
+    label="Search"
+    coord="full-text index"
+    container="sm"
+    title="Search publications"
+    lead="Full-text search across every publication's title, scope, identifiers, technical committee, and bibliographic metadata. Results link directly to the matching publication page."
+    major
+  />
 
   <section class="px-8 py-8">
     <div class="max-w-4xl mx-auto">

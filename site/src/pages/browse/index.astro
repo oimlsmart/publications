@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro'
 import { loadDataset } from '../../data/publications'
 import PubCard from '../../components/PubCard.astro'
 import BrowseToolbar from '../../components/BrowseToolbar.astro'
+import PageHero from '../../components/PageHero.astro'
 
 const data = loadDataset()
 const allSeries = [...data.series].sort((a, b) => {
@@ -13,21 +14,15 @@ const stats = data.stats
 ---
 
 <Base title="Browse publications" currentPath="/browse">
-  <section class="relative px-8 pt-12 pb-8 border-b border-rule bp-grid bp-grid--major bp-noise">
-    <div class="max-w-7xl mx-auto relative z-10">
-      <div class="bp-section-anchor mb-3">
-        <span class="bp-section-anchor__num">§ B</span>
-        <span>Browse</span>
-        <span class="bp-section-anchor__line"></span>
-        <span class="bp-coord">{stats.totalSeries} publications</span>
-      </div>
-      <h1 class="font-serif text-4xl font-medium tracking-tight mb-3">Browse all publications</h1>
-      <p class="text-ink-soft max-w-2xl">
-        {stats.totalSeries.toLocaleString('en-US')} OIML publications across {stats.totalEditions.toLocaleString('en-US')} editions
-        and {stats.totalPdfsWithFile.toLocaleString('en-US')} PDFs.
-      </p>
-    </div>
-  </section>
+  <PageHero
+    num="B"
+    label="Browse"
+    coord={`${stats.totalSeries} publications`}
+    title="Browse all publications"
+    lead={`${stats.totalSeries.toLocaleString('en-US')} OIML publications across ${stats.totalEditions.toLocaleString('en-US')} editions and ${stats.totalPdfsWithFile.toLocaleString('en-US')} PDFs.`}
+    major
+    container="lg"
+  />
 
   <BrowseToolbar series={allSeries} showDoctypeNav doctypeCounts={stats.byDoctype} />
 

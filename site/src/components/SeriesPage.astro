@@ -4,7 +4,9 @@ import type { Series } from '../data/types'
 import { BASE_PATH } from '../data/publications'
 import { pubUrl, apiUrl } from '../data/urls'
 import { toJsonLd } from '../data/record'
+import PageHero from './PageHero.astro'
 import DoctypeChip from './DoctypeChip.astro'
+import HighPriorityBadge from './HighPriorityBadge.astro'
 import StatusBadge from './StatusBadge.astro'
 import RelationList from './RelationList.astro'
 
@@ -23,38 +25,29 @@ const langs = series.currentEdition?.languages() ?? []
     <script type="application/ld+json" set:html={JSON.stringify(toJsonLd({ series }))} />
   </slot>
 
-  <section class="relative px-8 pt-12 pb-8 border-b border-rule bp-grid bp-grid--major bp-noise">
-    <div class="max-w-6xl mx-auto relative z-10">
-      <div class="bp-section-anchor mb-3">
-        <span class="bp-section-anchor__num">§ {series.docnumber}</span>
-        <span>{series.doctype}</span>
-        <span class="bp-section-anchor__line"></span>
-        <span class="bp-coord">{series.editions.length} edition{series.editions.length !== 1 ? 's' : ''}</span>
-      </div>
-
-      <div class="flex items-center gap-2 mb-3 flex-wrap">
-        <DoctypeChip doctype={series.doctype} />
-        <span class="font-mono text-sm text-ink-soft">{series.docid}</span>
-        {series.currentEdition && <StatusBadge status={series.currentEdition.status} />}
-        {series.highPriority && (
-          <span class="px-2 py-0.5 text-xs font-mono uppercase border border-amber-400 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded-sm">
-            ★ High priority
-          </span>
-        )}
-      </div>
-
-      <h1 class="font-serif text-4xl font-medium leading-[1.1] tracking-tight mb-3">{title}</h1>
-      {series.scope && <p class="text-lg text-ink-soft max-w-3xl mb-4">{series.scope}</p>}
-
-      <dl class="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm font-mono mt-6">
-        {series.tc && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">TC / SC</dt><dd class="text-base">{series.tc}</dd></div>)}
-        {series.editions.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">First published</dt><dd class="text-base">{Math.min(...series.editions.map(e => e.year))}</dd></div>)}
-        {series.editions.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">Latest edition</dt><dd class="text-base">{series.editions[0].year}</dd></div>)}
-        {langs.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">Languages</dt><dd class="text-base">{langs.map(l => l).join(', ')}</dd></div>)}
-        {series.urn && (<div class="sm:col-span-2 md:col-span-4"><dt class="text-ink-soft uppercase text-xs tracking-wide">URN</dt><dd class="text-xs break-all">{series.urn}</dd></div>)}
-      </dl>
+  <PageHero
+    num={series.docnumber}
+    label={series.doctype}
+    coord={`${series.editions.length} edition${series.editions.length !== 1 ? 's' : ''}`}
+    title={title}
+    lead={series.scope}
+    major
+  >
+    <div class="flex items-center gap-2 mb-3 flex-wrap">
+      <DoctypeChip doctype={series.doctype} />
+      <span class="font-mono text-sm text-ink-soft">{series.docid}</span>
+      {series.currentEdition && <StatusBadge status={series.currentEdition.status} />}
+      {series.highPriority && <HighPriorityBadge />}
     </div>
-  </section>
+
+    <dl class="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm font-mono mt-6">
+      {series.tc && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">TC / SC</dt><dd class="text-base">{series.tc}</dd></div>)}
+      {series.editions.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">First published</dt><dd class="text-base">{Math.min(...series.editions.map(e => e.year))}</dd></div>)}
+      {series.editions.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">Latest edition</dt><dd class="text-base">{series.editions[0].year}</dd></div>)}
+      {langs.length > 0 && (<div><dt class="text-ink-soft uppercase text-xs tracking-wide">Languages</dt><dd class="text-base">{langs.map(l => l).join(', ')}</dd></div>)}
+      {series.urn && (<div class="sm:col-span-2 md:col-span-4"><dt class="text-ink-soft uppercase text-xs tracking-wide">URN</dt><dd class="text-xs break-all">{series.urn}</dd></div>)}
+    </dl>
+  </PageHero>
 
   <section class="px-8 py-8 border-b border-rule">
     <div class="max-w-6xl mx-auto">

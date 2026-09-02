@@ -4,6 +4,7 @@ import { loadDataset, BASE_PATH } from '../../data/publications'
 import { ALL_DOCTYPES, DOCTYPE_LABELS } from '../../data/types'
 import PubCard from '../../components/PubCard.astro'
 import BrowseToolbar from '../../components/BrowseToolbar.astro'
+import PageHero from '../../components/PageHero.astro'
 
 export async function getStaticPaths() {
   return ALL_DOCTYPES.map(dt => ({ params: { doctype: dt } }))
@@ -16,21 +17,17 @@ const label = DOCTYPE_LABELS[doctype]
 ---
 
 <Base title={label.plural} currentPath={`/browse/${doctype}`}>
-  <section class="relative px-8 pt-12 pb-8 border-b border-rule bp-grid bp-grid--major bp-noise">
-    <div class="max-w-7xl mx-auto relative z-10">
-      <div class="bp-section-anchor mb-3">
-        <span class="bp-section-anchor__num">§ {label.plural[0]}</span>
-        <span>{label.plural}</span>
-        <span class="bp-section-anchor__line"></span>
-        <span class="bp-coord">{series.length} publications</span>
-      </div>
-      <h1 class="font-serif text-4xl font-medium tracking-tight mb-3">{label.plural}</h1>
-      <p class="text-ink-soft max-w-2xl">
-        {series.length.toLocaleString('en-US')} {label.singular.toLowerCase()} publications in the archive.
-      </p>
-      <a href={`${BASE_PATH}/browse/`} class="text-sm text-accent hover:underline mt-3 inline-block">← All publications</a>
-    </div>
-  </section>
+  <PageHero
+    num={label.plural[0]}
+    label={label.plural}
+    coord={`${series.length} publications`}
+    title={label.plural}
+    lead={`${series.length.toLocaleString('en-US')} ${label.singular.toLowerCase()} publications in the archive.`}
+    major
+    container="lg"
+  >
+    <a href={`${BASE_PATH}/browse/`} class="text-sm text-accent hover:underline mt-3 inline-block">← All publications</a>
+  </PageHero>
 
   <BrowseToolbar series={series} />
 
