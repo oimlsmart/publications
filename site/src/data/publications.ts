@@ -14,120 +14,23 @@ import type {
   Doctype, Status, Lang, Relation, DoiSource,
 } from './types'
 import { ALL_DOCTYPES, EXCLUDED_DOCTYPES } from './types'
+import { deriveDoi, deriveUrn, languageFromId, DOCTYPE_FROM_LETTER } from './identifiers'
+import { BASE_PATH, pdfUrl, yamlUrl } from './urls'
+
+export { BASE_PATH } from './urls'
+export { deriveDoi, deriveUrn } from './identifiers'
 
 const ROOT = join(process.cwd(), '..')
 const DATA_DIR = join(ROOT, 'relaton-data-oiml', 'data')
 const PDFS_DIR = join(ROOT, 'pdfs')
 
-// Astro base path (`base` in astro.config.mjs).
-export const BASE_PATH = '/publications'
-
-// ─── identifier derivation (DOI + URN) ───────────────────────────────
-// DOI: OIML owns prefix 10.63493 and follows a uniform suffix pattern
-//   10.63493/<letter><NNN>.<year>.en
-// where <letter> is the lowercase doctype initial (r/d/g/b/v/e/s), <NNN>
-// is the docnumber zero-padded to 3 digits, and the language suffix is
-// always "en" (DOI is edition-level, not language-level — verified across
-// all 889 upstream DOIs in relaton-data-oiml).
-//
-// URN: RFC 5141 ISO-std namespace, extended with year/part/lang:
-//   urn:iso:std:oiml:<num>[:<year>[:<part>[:<lang>]]]
-// Matches what relaton-iso/metanorma emit and is safe to derive for every
-// record (URNs need no registration authority).
-
-const DOI_PREFIX = '10.63493'
-const URN_PREFIX = 'urn:iso:std:oiml'
-
-const DOCTYPE_LETTER: Record<Doctype, string> = {
-  'recommendation': 'r',
-  'basic-publication': 'b',
-  'document': 'd',
-  'guide': 'g',
-  'expert-report': 'e',
-  'seminar-report': 's',
-  'vocabulary': 'v',
-}
-
-/** ISO 639-3 → ISO 639-1 (used for DOI suffix and URN lang component). */
-const LANG_TO_2LETTER: Partial<Record<Lang, string>> = {
-  eng: 'en', fra: 'fr', ara: 'ar', srp: 'sr', ukr: 'uk',
-  zho: 'zh', deu: 'de', rus: 'ru', pol: 'pl', por: 'pt',
-  spa: 'es', fas: 'fa', ron: 'ro',
-}
-
-interface IdentInput {
-  doctype: Doctype
-  docnumber: string
-  year?: number
-  partNumber?: string
-  language?: Lang
-}
-
-/** Compute the OIML-pattern DOI for an edition. Returns undefined if
- *  doctype/docnumber/year aren't known. */
-export function deriveDoi(input: IdentInput): string | undefined {
-  const letter = DOCTYPE_LETTER[input.doctype]
-  if (!letter || !input.docnumber || !input.year) return undefined
-  const num = input.docnumber.padStart(3, '0')
-  return `${DOI_PREFIX}/${letter}${num}.${input.year}.en`
-}
-
-/** Compute the hierarchical URN. Includes year if known; part/lang only
- *  when those components are present (so series → edition → part → instance
- *  URNs nest cleanly). */
-export function deriveUrn(input: IdentInput): string | undefined {
-  if (!input.docnumber || !DOCTYPE_LETTER[input.doctype]) return undefined
-  const parts: string[] = [URN_PREFIX, input.docnumber]
-  if (input.year) parts.push(String(input.year))
-  if (input.partNumber) parts.push(input.partNumber)
-  if (input.language) {
-    const lang2 = LANG_TO_2LETTER[input.language]
-    if (lang2) parts.push(lang2)
-  }
-  return parts.join(':')
-}
-
-
 // ─── id/slug helpers ─────────────────────────────────────────────────
-
-// Match language suffix on relaton id. Covers every suffix OIML uses in
-// its data: short legacy codes (E/F/A), ISO 639-3 (eng/fra/ara/deu/fas/pol/
-// spa/srp/ukr/zho), and a few non-standard variants (Chi/Cn/Ua/Ro/Fa/Fara).
-const LANG_SUFFIX_RE = /-(E|F|A|Sr|Uk|Eng|Fra|Ara|Deu|Rus|Pol|Por|Spa|Zho|Chi|Fa|Fas|Fara|Cn|Ua|Ro|eng|fra|ara|srp|ukr|deu|rus|pol|por|spa|zho|fas|chi)$/i
-
-const LANG_CODE_MAP: Record<string, Lang> = {
-  e: 'eng', f: 'fra', a: 'ara',
-  eng: 'eng', fra: 'fra', ara: 'ara',
-  sr: 'srp', srp: 'srp',
-  ukr: 'ukr', uk: 'ukr', ua: 'ukr',
-  zho: 'zho', chi: 'zho', cn: 'zho',
-  deu: 'deu', rus: 'rus', pol: 'pol', por: 'por',
-  spa: 'spa', sp: 'spa',
-  fa: 'fas', fas: 'fas', fara: 'fas',
-  ro: 'ron',
-}
-
-function languageFromId(id: string): Lang | undefined {
-  const m = id.match(LANG_SUFFIX_RE)
-  if (!m) return undefined
-  return LANG_CODE_MAP[m[1].toLowerCase()] ?? ('unknown' as Lang)
-}
 
 function slugify(id: string): string {
   return id.toLowerCase().replace(/[+]/g, '-').replace(/[^a-z0-9-]/g, '-')
 }
 
 // ─── YAML parsing helpers ────────────────────────────────────────────
-
-const DOCTYPE_FROM_LETTER: Record<string, Doctype> = {
-  r: 'recommendation',
-  d: 'document',
-  g: 'guide',
-  b: 'basic-publication',
-  v: 'vocabulary',
-  e: 'expert-report',
-  s: 'seminar-report',
-}
 
 function doctypeOf(yaml: any): Doctype | 'excluded' | 'unknown' {
   const raw = yaml?.ext?.doctype
@@ -336,7 +239,7 @@ function parseRaw(file: string): RawRec | null {
     upstreamDoi: yaml?.ext?.doi,
     publishedAt: yaml.date?.find((d: any) => d.type === 'published')?.from,
     relations: relationsOf(yaml),
-    localYamlPath: `${BASE_PATH}/data/${file}`,
+    localYamlPath: yamlUrl(file),
   }
 
   if (lang) {
@@ -345,7 +248,7 @@ function parseRaw(file: string): RawRec | null {
     if (sourceUrl) rec.sourceUrl = sourceUrl
     const pdf = resolveLocalPdf(sourceUrl)
     if (pdf.path) {
-      rec.localPdfPath = `${BASE_PATH}/pdfs/${pdf.path}`
+      rec.localPdfPath = pdfUrl(pdf.path)
       rec.fileSize = pdf.size
     }
   }

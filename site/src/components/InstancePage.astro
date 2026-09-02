@@ -2,6 +2,8 @@
 import Base from '../layouts/Base.astro'
 import type { Edition, Instance, Part, Series } from '../data/types'
 import { BASE_PATH } from '../data/publications'
+import { pubUrl, apiUrl } from '../data/urls'
+import { toJsonLd } from '../data/record'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
 import RelationList from './RelationList.astro'
@@ -27,35 +29,18 @@ const workSlug = (p ?? ed).slug
   <slot name="head" slot="head">
     <link rel="alternate" type="application/yaml" href={inst.localYamlPath} />
     {inst.localPdfPath && <link rel="alternate" type="application/pdf" href={inst.localPdfPath} />}
-    <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${inst.slug}`} />
+    <link rel="alternate" type="application/json" href={apiUrl(inst.slug)} />
     {inst.urn && <link rel="alternate" type="text/plain" href={inst.urn} title="URN" />}
     <meta property="og:title" content={inst.docid} />
     <meta property="og:description" content={(p?.scope ?? ed.scope) ?? title} />
     {inst.doi && <meta name="citation_doi" content={inst.doi} />}
     {inst.publishedAt && <meta name="citation_publication_date" content={inst.publishedAt} />}
-    <script type="application/ld+json" set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': ['Standard', 'CreativeWork'],
-      '@id': inst.urn ?? `${BASE_PATH}/pub/${inst.slug}/`,
-      identifier: inst.docid,
-      name: title,
-      description: p?.scope ?? ed.scope,
-      datePublished: inst.publishedAt,
-      inLanguage: inst.language,
-      encoding: inst.localPdfPath ? [{
-        '@type': 'MediaObject',
-        encodingFormat: 'application/pdf',
-        contentUrl: inst.localPdfPath,
-      }] : undefined,
-      doi: inst.doi,
-      isPartOf: `${BASE_PATH}/pub/${workSlug}/`,
-      publisher: { '@type': 'Organization', name: 'OIML' },
-    })} />
+    <script type="application/ld+json" set:html={JSON.stringify(toJsonLd({ series, edition: ed, part: p, instance: inst }))} />
   </slot>
 
   <section class="relative px-8 pt-10 pb-6 border-b border-rule bp-grid bp-noise">
     <div class="max-w-7xl mx-auto relative z-10">
-      <a href={`${BASE_PATH}/pub/${workSlug}/`} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {parent.docid}</a>
+      <a href={pubUrl(workSlug)} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {parent.docid}</a>
       <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
         <DoctypeChip doctype={series.doctype} />
         {p && <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">Part {p.partNumber}</span>}
@@ -86,7 +71,7 @@ const workSlug = (p ?? ed).slug
           <h2 class="font-serif text-xl mb-3">Other languages</h2>
           <div class="flex gap-2 flex-wrap">
             {siblingInstances.sort((a, b) => a.language.localeCompare(b.language)).map(s => (
-              <a href={`${BASE_PATH}/pub/${s.slug}/`} class="px-3 py-1.5 text-sm border border-rule rounded-sm hover:border-accent hover:shadow-sm transition-all">
+              <a href={pubUrl(s.slug)} class="px-3 py-1.5 text-sm border border-rule rounded-sm hover:border-accent hover:shadow-sm transition-all">
                 {s.language} · {LANG_LABELS[s.language] ?? s.language}
               </a>
             ))}
@@ -132,7 +117,7 @@ const workSlug = (p ?? ed).slug
             <li><a href={inst.sourceUrl} class="text-accent hover:underline">⬆ Upstream ({(() => { try { return new URL(inst.sourceUrl).host } catch { return inst.sourceUrl } })()})</a></li>
           )}
           <li><a href={inst.localYamlPath} class="text-accent hover:underline">⬇ YAML record</a></li>
-          <li><a href={`${BASE_PATH}/api/publications/${inst.slug}`} class="text-accent hover:underline">⬇ JSON record</a></li>
+          <li><a href={apiUrl(inst.slug)} class="text-accent hover:underline">⬇ JSON record</a></li>
         </ul>
       </div>
 

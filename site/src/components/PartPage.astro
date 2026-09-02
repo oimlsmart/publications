@@ -2,6 +2,8 @@
 import Base from '../layouts/Base.astro'
 import type { Edition, Part, Series } from '../data/types'
 import { BASE_PATH } from '../data/publications'
+import { pubUrl, apiUrl } from '../data/urls'
+import { toJsonLd } from '../data/record'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
 import RelationList from './RelationList.astro'
@@ -13,14 +15,17 @@ const title = p.title.eng ?? p.title.fra ?? p.docid
 
 <Base title={p.docid} currentPath={`/pub/${p.slug}`}>
   <slot name="head" slot="head">
-    <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${p.slug}`} />
+    <link rel="alternate" type="application/json" href={apiUrl(p.slug)} />
+    {p.urn && <link rel="alternate" type="text/plain" href={p.urn} title="URN" />}
     <meta property="og:title" content={p.docid} />
     <meta property="og:description" content={p.scope ?? title} />
+    {p.doi && <meta name="citation_doi" content={p.doi} />}
+    <script type="application/ld+json" set:html={JSON.stringify(toJsonLd({ series, edition: ed, part: p }))} />
   </slot>
 
   <section class="relative px-8 pt-10 pb-6 border-b border-rule bp-grid bp-noise">
     <div class="max-w-6xl mx-auto relative z-10">
-      <a href={`${BASE_PATH}/pub/${ed.slug}/`} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {ed.docid}</a>
+      <a href={pubUrl(ed.slug)} class="text-xs font-mono text-ink-soft hover:text-accent">← back to {ed.docid}</a>
       <div class="flex items-center gap-2 mt-2 mb-3 flex-wrap">
         <DoctypeChip doctype={series.doctype} />
         <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">Part {p.partNumber}</span>
@@ -40,7 +45,7 @@ const title = p.title.eng ?? p.title.fra ?? p.docid
       ) : (
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {p.instances.map(i => (
-            <a href={`${BASE_PATH}/pub/${i.slug}/`} class="border border-rule p-4 rounded-sm hover:border-accent hover:shadow-md transition-all bg-paper-soft dark:bg-paper">
+            <a href={pubUrl(i.slug)} class="border border-rule p-4 rounded-sm hover:border-accent hover:shadow-md transition-all bg-paper-soft dark:bg-paper">
               <div class="flex items-center gap-2 mb-2">
                 <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">{i.language}</span>
                 <span class="text-xs text-ink-soft">{i.language}</span>

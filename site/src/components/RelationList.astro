@@ -1,6 +1,7 @@
 ---
 import type { Relation } from '../data/types'
-import { loadDataset, BASE_PATH } from '../data/publications'
+import { BASE_PATH, loadDataset } from '../data/publications'
+import { pubUrl } from '../data/urls'
 
 interface Props {
   relations: Relation[]
@@ -80,7 +81,7 @@ const friendly: Record<string, string> = {
       {grouped[type].map(r => {
         const hit = byDocid.get(r.target)
         const label = hit ? hit.docid : r.target
-        const href = hit ? `${BASE_PATH}/pub/${hit.slug}/` : undefined
+        const href = hit ? pubUrl(hit.slug) : undefined
         return (
           <li class="text-sm">
             {href ? (

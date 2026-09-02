@@ -2,6 +2,8 @@
 import Base from '../layouts/Base.astro'
 import type { Series } from '../data/types'
 import { BASE_PATH } from '../data/publications'
+import { pubUrl, apiUrl } from '../data/urls'
+import { toJsonLd } from '../data/record'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
 import RelationList from './RelationList.astro'
@@ -14,20 +16,11 @@ const langs = series.currentEdition?.languages() ?? []
 
 <Base title={series.docid} currentPath={`/pub/${series.slug}`}>
   <slot name="head" slot="head">
-    <link rel="alternate" type="application/json" href={`${BASE_PATH}/api/publications/${series.slug}`} />
+    <link rel="alternate" type="application/json" href={apiUrl(series.slug)} />
     {series.urn && <link rel="alternate" type="text/plain" href={series.urn} title="URN" />}
     <meta property="og:title" content={series.docid} />
     <meta property="og:description" content={series.scope ?? title} />
-    <script type="application/ld+json" set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': ['Standard', 'CreativeWork'],
-      '@id': series.urn ?? `${BASE_PATH}/pub/${series.slug}/`,
-      identifier: series.docid,
-      name: title,
-      description: series.scope,
-      hasSuccessor: series.editions.flatMap(e => e.relations.filter(r => r.type === 'hasSuccessor').map(r => r.target)),
-      publisher: { '@type': 'Organization', name: 'OIML' },
-    })} />
+    <script type="application/ld+json" set:html={JSON.stringify(toJsonLd({ series }))} />
   </slot>
 
   <section class="relative px-8 pt-12 pb-8 border-b border-rule bp-grid bp-grid--major bp-noise">
@@ -72,7 +65,7 @@ const langs = series.currentEdition?.languages() ?? []
           const isCurrent = ed.status === 'in-force'
           return (
             <li>
-              <a href={`${BASE_PATH}/pub/${ed.slug}/`} class="block px-4 py-3 hover:bg-paper-soft dark:hover:bg-paper-deep transition-colors">
+              <a href={pubUrl(ed.slug)} class="block px-4 py-3 hover:bg-paper-soft dark:hover:bg-paper-deep transition-colors">
                 <div class="flex items-center gap-3 flex-wrap">
                   <span class={`font-mono text-xs px-2 py-0.5 border rounded-sm ${isCurrent ? 'border-green-400 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200' : 'border-rule'}`}>
                     {ed.year}

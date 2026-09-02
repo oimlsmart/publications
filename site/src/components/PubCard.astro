@@ -1,6 +1,7 @@
 ---
 import type { Series } from '../data/types'
 import { BASE_PATH } from '../data/publications'
+import { pubUrl } from '../data/urls'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
 
@@ -10,7 +11,7 @@ interface Props {
 
 const { series } = Astro.props
 const title = series.title.eng ?? series.title.fra ?? series.docid
-const url = `${BASE_PATH}/pub/${series.slug}/`
+const url = pubUrl(series.slug)
 const langs = series.currentEdition?.languages() ?? []
 const totalPdfs = series.editions.reduce((sum, ed) => sum + ed.instances.length + ed.parts.reduce((s, p) => s + p.instances.length, 0), 0)
 ---

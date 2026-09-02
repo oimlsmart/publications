@@ -1,8 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro'
-import { loadDataset, BASE_PATH } from '../../data/publications'
-import { ALL_DOCTYPES, DOCTYPE_LABELS } from '../../data/types'
+import { loadDataset } from '../../data/publications'
 import PubCard from '../../components/PubCard.astro'
+import BrowseToolbar from '../../components/BrowseToolbar.astro'
 
 const data = loadDataset()
 const allSeries = [...data.series].sort((a, b) => {
@@ -29,18 +29,7 @@ const stats = data.stats
     </div>
   </section>
 
-  <section class="sticky top-14 z-50 px-8 py-3 border-b border-rule bg-paper-soft/95 dark:bg-paper-deep/95 backdrop-blur">
-    <div class="max-w-7xl mx-auto">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-rule border border-rule rounded-md overflow-hidden">
-        {ALL_DOCTYPES.map(dt => (
-          <a href={`${BASE_PATH}/browse/${dt}/`} class="bg-paper-soft dark:bg-paper p-3 hover:bg-paper dark:hover:bg-paper-deep transition-colors text-center">
-            <div class="text-lg font-serif text-ink">{stats.byDoctype[dt] ?? 0}</div>
-            <div class="text-[0.625rem] font-mono uppercase tracking-wide text-ink-soft mt-0.5">{DOCTYPE_LABELS[dt].plural}</div>
-          </a>
-        ))}
-      </div>
-    </div>
-  </section>
+  <BrowseToolbar series={allSeries} showDoctypeNav doctypeCounts={stats.byDoctype} />
 
   <section class="px-8 py-6">
     <div class="max-w-7xl mx-auto">
@@ -57,6 +46,9 @@ const stats = data.stats
           </div>
         ))}
       </div>
+      <p id="no-results" class="hidden text-center text-ink-muted py-12 font-mono text-sm">
+        No publications match this filter.
+      </p>
     </div>
   </section>
 </Base>
