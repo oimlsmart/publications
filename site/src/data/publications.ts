@@ -18,7 +18,7 @@ import { deriveDoi, deriveUrn, languageFromId, DOCTYPE_FROM_LETTER } from './ide
 import { BASE_PATH, pdfUrl, yamlUrl } from './urls'
 
 export { BASE_PATH } from './urls'
-export { deriveDoi, deriveUrn } from './identifiers'
+export { deriveDoi, deriveUrn, DOCTYPE_FROM_LETTER } from './identifiers'
 
 const ROOT = join(process.cwd(), '..')
 const DATA_DIR = join(ROOT, 'relaton-data-oiml', 'data')

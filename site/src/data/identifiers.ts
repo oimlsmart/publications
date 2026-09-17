@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────
 
 import type { Doctype, Lang } from './types'
+import { parseOimlPubid, urnForOimlPubid } from '@oimlsmart/oiml-pubid'
 
 // DOI: OIML owns prefix 10.63493 and follows a uniform suffix pattern
 //   10.63493/<letter><NNN>.<year>.en
@@ -16,13 +17,13 @@ import type { Doctype, Lang } from './types'
 // always "en" (DOI is edition-level, not language-level — verified across
 // all upstream DOIs in relaton-data-oiml).
 //
-// URN: RFC 5141 ISO-std namespace, extended with year/part/lang:
-//   urn:iso:std:oiml:<num>[:<year>[:<part>[:<lang>]]]
-// Matches what relaton-iso/metanorma emit and is safe to derive for every
-// record (URNs need no registration authority).
+// URN: minted by @oimlsmart/oiml-pubid — THE single source of truth for
+// the OIML URN convention (spec: data/oiml-urn-specification.adoc):
+//   urn:oiml:pub:<letter>:<num>[-<part>][:<year>][:<lang>]
+// This module only adapts the loader's structured fields to the package's
+// canonical identifier string; never compose URN components by hand.
 
 const DOI_PREFIX = '10.63493'
-const URN_PREFIX = 'urn:iso:std:oiml'
 
 export const DOCTYPE_LETTER: Record<Doctype, string> = {
   'recommendation': 'r',
@@ -93,17 +94,21 @@ export function deriveDoi(input: IdentInput): string | undefined {
   return `${DOI_PREFIX}/${letter}${num}.${input.year}.en`
 }
 
-/** Compute the hierarchical URN. Includes year if known; part/lang only
- *  when those components are present (so series → edition → part → instance
- *  URNs nest cleanly). */
+/** Compute the OIML URN via @oimlsmart/oiml-pubid. Includes year if
+ *  known; part/language only when those components are present (so
+ *  series → edition → part → instance URNs nest cleanly). */
 export function deriveUrn(input: IdentInput): string | undefined {
-  if (!input.docnumber || !DOCTYPE_LETTER[input.doctype]) return undefined
-  const parts: string[] = [URN_PREFIX, input.docnumber]
-  if (input.year) parts.push(String(input.year))
-  if (input.partNumber) parts.push(input.partNumber)
-  if (input.language) {
-    const lang2 = LANG_TO_2LETTER[input.language]
-    if (lang2) parts.push(lang2)
-  }
-  return parts.join(':')
+  const letter = DOCTYPE_LETTER[input.doctype]
+  if (!letter || !input.docnumber) return undefined
+  const langMarker = input.language && LANG_TO_2LETTER[input.language]
+    ? `(${input.language})`
+    : ''
+  const src = [
+    `OIML ${letter}${input.docnumber}`,
+    input.partNumber ? `-${input.partNumber}` : '',
+    input.year ? `:${input.year}` : '',
+    langMarker,
+  ].join('')
+  const pubid = parseOimlPubid(src)
+  return pubid ? urnForOimlPubid(pubid) : undefined
 }

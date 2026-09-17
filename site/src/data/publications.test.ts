@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { loadDataset, deriveDoi, deriveUrn } from '../data/publications'
+import { loadDataset, deriveDoi, deriveUrn, DOCTYPE_FROM_LETTER } from '../data/publications'
 import { ALL_DOCTYPES } from '../data/types'
+import corpus from '@oimlsmart/oiml-pubid/conformance'
 
 // Loading parses ~5,700 YAMLs at build time — first call takes ~5–10s.
 // Subsequent calls hit the module-level memo and return instantly.
@@ -85,13 +86,36 @@ describe('loadDataset', () => {
 
   it('derives hierarchical URNs at every level', () => {
     expect(deriveUrn({ doctype: 'recommendation', docnumber: '60' }))
-      .toBe('urn:iso:std:oiml:60')
+      .toBe('urn:oiml:pub:r:60')
     expect(deriveUrn({ doctype: 'recommendation', docnumber: '60', year: 2021 }))
-      .toBe('urn:iso:std:oiml:60:2021')
+      .toBe('urn:oiml:pub:r:60:2021')
     expect(deriveUrn({ doctype: 'recommendation', docnumber: '60', year: 2021, partNumber: '1' }))
-      .toBe('urn:iso:std:oiml:60:2021:1')
+      .toBe('urn:oiml:pub:r:60-1:2021')
     expect(deriveUrn({ doctype: 'recommendation', docnumber: '60', year: 2021, partNumber: '1', language: 'eng' }))
-      .toBe('urn:iso:std:oiml:60:2021:1:en')
+      .toBe('urn:oiml:pub:r:60-1:2021:en')
+    expect(deriveUrn({ doctype: 'basic-publication', docnumber: '1', year: 1968 }))
+      .toBe('urn:oiml:pub:b:1:1968')
+  })
+
+  it('derives URNs that match the shared oiml-pubid conformance corpus', () => {
+    let checked = 0
+    for (const c of corpus.cases) {
+      // The site only mints publication URNs from structured input; the
+      // CS family and language markers arrive through the identifier
+      // string and are covered by the package's own suite.
+      if (c.structure.series === 'cs' || c.structure.language) continue
+      const doctype = DOCTYPE_FROM_LETTER[c.structure.family]
+      if (!doctype) continue
+      const urn = deriveUrn({
+        doctype,
+        docnumber: c.structure.number,
+        year: c.structure.year ? Number(c.structure.year) : undefined,
+        partNumber: c.structure.part,
+      })
+      expect(urn, c.identifier).toBe(c.urn)
+      checked++
+    }
+    expect(checked).toBeGreaterThan(5)
   })
 
   it('every series, edition, and instance has a URN', () => {
@@ -99,10 +123,10 @@ describe('loadDataset', () => {
     expect(data.series.length).toBeGreaterThan(100)
     for (const s of data.series) {
       expect(s.urn, `series ${s.docid}`).toBeTruthy()
-      expect(s.urn).toMatch(/^urn:iso:std:oiml:\d+$/)
+      expect(s.urn).toMatch(/^urn:oiml:pub:[a-z]+:\d+$/)
       for (const ed of s.editions) {
         expect(ed.urn, `edition ${ed.docid}`).toBeTruthy()
-        expect(ed.urn).toMatch(/^urn:iso:std:oiml:\d+:\d{4}$/)
+        expect(ed.urn).toMatch(/^urn:oiml:pub:[a-z]+:\d+(-\d+)?:\d{4}$/)
       }
     }
   })
