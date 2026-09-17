@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@astrojs/vue": "^7.0.1",
-    "@oimlsmart/oiml-pubid": "github:oimlsmart/oiml-pubid#fix/language-component",
+    "@oimlsmart/oiml-pubid": "^1.1.1",
     "@oimlsmart/site-shell": "file:../vendor/site-shell",
     "astro": "^7.0.7",
     "vue": "^3.5.40"
