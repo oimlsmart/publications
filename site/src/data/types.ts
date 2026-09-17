@@ -115,7 +115,7 @@ export interface Instance {
   doi?: string
   /** Whether `doi` was read from the source YAML or derived from the OIML pattern. */
   doiSource?: DoiSource
-  /** URN (urn:iso:std:oiml:...) derived from docnumber/year/part/lang. */
+  /** URN (urn:oiml:pub:... per the OIML URN specification) minted via @oimlsmart/oiml-pubid. */
   urn?: string
   /** Raw relations from the YAML (cross-language, cross-edition, etc.). */
   relations: Relation[]
@@ -137,7 +137,7 @@ export interface Part {
   status: Status
   doi?: string
   doiSource?: DoiSource
-  /** URN, including the part-number component (e.g. urn:iso:std:oiml:60:2021:1). */
+  /** URN, including the part-number component (e.g. urn:oiml:pub:r:60-1:2021). */
   urn?: string
   relations: Relation[]
 }
@@ -160,7 +160,7 @@ export interface Edition {
   highPriority?: boolean
   doi?: string
   doiSource?: DoiSource
-  /** Edition-level URN (e.g. urn:iso:std:oiml:60:2021). */
+  /** Edition-level URN (e.g. urn:oiml:pub:r:60:2021). */
   urn?: string
   publishedAt?: string
   /** Parts (empty if single-document). */
@@ -195,7 +195,7 @@ export interface Series {
   currentEdition?: Edition
   /** TC/SC from the current edition. */
   tc?: string
-  /** Work-level URN (e.g. urn:iso:std:oiml:60). */
+  /** Work-level URN (e.g. urn:oiml:pub:r:60). */
   urn?: string
 }
 

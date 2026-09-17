@@ -66,7 +66,7 @@ function identInput(yaml) {
   }
 }
 
-let read = 0, doiAdded = 0, doiSkipped = 0, urnAdded = 0, urnSkipped = 0, errors = 0
+let read = 0, doiAdded = 0, doiSkipped = 0, urnAdded = 0, urnReplaced = 0, urnSkipped = 0, errors = 0
 
 for (const f of files) {
   const abs = join(DATA_DIR, f)
@@ -95,14 +95,20 @@ for (const f of files) {
     }
   }
 
-  // URN: add as a docidentifier with type: 'urn' if not present.
+  // URN: add as a docidentifier with type: 'urn' if not present; replace
+  // a stale one (the derivation is the source of truth — e.g. the
+  // urn:iso:std:oiml legacy form re-stamps to urn:oiml:pub:...).
   const wantUrn = deriveUrn(i)
   if (wantUrn) {
     if (!Array.isArray(yaml.docidentifier)) yaml.docidentifier = []
-    const hasUrn = yaml.docidentifier.some(d => d?.type === 'urn')
-    if (!hasUrn) {
+    const urnDocid = yaml.docidentifier.find(d => d?.type === 'urn')
+    if (!urnDocid) {
       yaml.docidentifier.push({ content: wantUrn, type: 'urn' })
       urnAdded++
+      changed = true
+    } else if (urnDocid.content !== wantUrn) {
+      urnDocid.content = wantUrn
+      urnReplaced++
       changed = true
     } else {
       urnSkipped++
@@ -119,5 +125,5 @@ for (const f of files) {
 
 console.log(`read:        ${read}`)
 console.log(`doi added:   ${doiAdded}  (skipped ${doiSkipped} already populated)`)
-console.log(`urn added:   ${urnAdded}  (skipped ${urnSkipped} already populated)`)
+console.log(`urn added:   ${urnAdded}  replaced ${urnReplaced}  (skipped ${urnSkipped} unchanged)`)
 console.log(`errors:      ${errors}`)
