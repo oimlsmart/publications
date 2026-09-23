@@ -21,7 +21,15 @@ It reads the relaton YAML under `../data/` at build time, classifies the
 
 ## Develop
 
+`@oimlsmart/site-shell` is a local `file:` dependency, so check it out
+into `../vendor/site-shell` first (same step CI does in
+`.github/workflows/build.yml`; `vendor/` is gitignored):
+
 ```sh
+# from the publications/ repo root
+git clone --depth 1 https://github.com/oimlsmart/site-shell.git vendor/site-shell
+
+cd site
 npm install
 npm run dev          # http://localhost:4321/publications/
 npm run build        # build + pagefind index
