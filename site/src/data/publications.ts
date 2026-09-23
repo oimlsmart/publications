@@ -507,16 +507,17 @@ function findInstancesFor(
   // Method 3: translations. A translation instance has a `translatedFrom`
   // relation pointing at one of the work's instance docids (e.g.
   // "OIML R 18:1985 (E)") or at a year-less variant ("OIML B 18 (E)").
-  // Match by normalized publication key "<letter> <number>" so both formats
-  // resolve to the same series. Uses a precomputed index for O(1) lookup.
+  // The pubKey index is only a candidate filter — a translation of
+  // R 49-1:2013 must never land on R 49-1:2024 (or on part -2/-3).
   if (translationsByKey) {
+    const workId = pubIdentity(work.docid)
     const workKey = pubKey(work.docid)
-    if (workKey) {
+    if (workId && workKey) {
       for (const inst of translationsByKey.get(workKey) ?? []) {
-        if (!seen.has(inst.id)) {
-          seen.add(inst.id)
-          out.push(inst)
-        }
+        if (seen.has(inst.id)) continue
+        if (!isTranslationOfWork(inst, workId)) continue
+        seen.add(inst.id)
+        out.push(inst)
       }
     }
   }
@@ -527,9 +528,50 @@ function findInstancesFor(
 /** Normalize a docid to "<letter> <number>" for series-level matching.
  *  "OIML R 18:1985 (E)" → "R 18"; "OIML B 18 (E)" → "B 18". */
 function pubKey(docid: string): string | undefined {
-  const m = docid.match(/\b([A-Z])\s*0*(\d+)\b/)
+  const id = pubIdentity(docid)
+  return id ? `${id.letter} ${id.number}` : undefined
+}
+
+/** Publication identity from a docid (language suffix ignored).
+ *  "OIML R 49-1:2013 (E)" → { letter:'R', number:49, part:'1', year:2013 }
+ *  "OIML B 18 (E)" → { letter:'B', number:18 } */
+function pubIdentity(docid: string): { letter: string; number: number; part?: string; year?: number } | undefined {
+  const m = docid.match(/\b([A-Z])\s*0*(\d+)(?:-(\d+))?(?::(\d{4}))?\b/)
   if (!m) return undefined
-  return `${m[1]} ${parseInt(m[2], 10)}`
+  return {
+    letter: m[1],
+    number: parseInt(m[2], 10),
+    part: m[3],
+    year: m[4] ? parseInt(m[4], 10) : undefined,
+  }
+}
+
+/** Same publication identity. A year-less side matches any year (legacy
+ *  "OIML B 18 (E)" targets); part must agree when both sides have one. */
+function samePublication(
+  a: { letter: string; number: number; part?: string; year?: number },
+  b: { letter: string; number: number; part?: string; year?: number },
+): boolean {
+  if (a.letter !== b.letter || a.number !== b.number) return false
+  if ((a.part ?? '') !== (b.part ?? '')) return false
+  if (a.year !== undefined && b.year !== undefined && a.year !== b.year) return false
+  return true
+}
+
+/** True when `inst` is a translation of this work, not of a sibling
+ *  edition or part. Checks every `translatedFrom` target first, then the
+ *  translation's own docid. */
+function isTranslationOfWork(
+  inst: Instance,
+  workId: { letter: string; number: number; part?: string; year?: number },
+): boolean {
+  for (const rel of inst.relations) {
+    if (rel.type !== 'translatedFrom') continue
+    const t = pubIdentity(rel.target)
+    if (t && samePublication(t, workId)) return true
+  }
+  const self = pubIdentity(inst.docid)
+  return !!self && samePublication(self, workId)
 }
 
 function mergeTitles(editions: Edition[]): Partial<Record<Lang, string>> {
