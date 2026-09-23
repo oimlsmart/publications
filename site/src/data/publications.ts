@@ -142,7 +142,9 @@ function buildPdfIndex() {
       let st
       try { st = statSync(childAbs) } catch { continue }
       if (st.isDirectory()) stack.push(childRel)
-      else if (e.endsWith('.pdf')) PDF_BASENAME_INDEX.set(e, childRel)
+      // Basename lookup is case-insensitive: upstream mixes R049-1-e13.pdf
+      // and r049-1-e13.pdf for the same file.
+      else if (e.endsWith('.pdf')) PDF_BASENAME_INDEX.set(e.toLowerCase(), childRel)
     }
   }
 }
@@ -150,7 +152,7 @@ function buildPdfIndex() {
 function resolveLocalPdf(sourceUrl: string | undefined): { path?: string; size?: number } {
   if (!sourceUrl || sourceUrl.endsWith('/None') || !sourceUrl.includes('.pdf')) return {}
   const basename = sourceUrl.split('/').pop()!
-  const hit = PDF_BASENAME_INDEX.get(basename)
+  const hit = PDF_BASENAME_INDEX.get(basename.toLowerCase())
   if (!hit) return {}
   const abs = join(PDFS_DIR, hit)
   if (!existsSync(abs)) return {}
