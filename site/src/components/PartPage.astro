@@ -9,6 +9,7 @@ import PartBadge from './PartBadge.astro'
 import DoctypeChip from './DoctypeChip.astro'
 import StatusBadge from './StatusBadge.astro'
 import RelationList from './RelationList.astro'
+import { LANG_LABELS } from '../data/types'
 
 export interface Props { series: Series; edition: Edition; part: Part }
 const { series, edition: ed, part: p } = Astro.props
@@ -49,8 +50,7 @@ const title = p.title.eng ?? p.title.fra ?? p.docid
           {p.instances.map(i => (
             <a href={pubUrl(i.slug)} class="border border-rule p-4 rounded-sm hover:border-accent hover:shadow-md transition-all bg-paper-soft dark:bg-paper">
               <div class="flex items-center gap-2 mb-2">
-                <span class="px-2 py-0.5 text-xs font-mono uppercase border border-rule rounded-sm">{i.language}</span>
-                <span class="text-xs text-ink-soft">{i.language}</span>
+                <span class="px-2 py-0.5 text-xs font-mono border border-rule rounded-sm">{LANG_LABELS[i.language] ?? i.language}</span>
               </div>
               <div class="text-sm font-mono text-ink-soft">{i.docid}</div>
               {i.localPdfPath ? (
