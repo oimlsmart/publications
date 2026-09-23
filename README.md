@@ -24,7 +24,7 @@ LICENSE              data: ODC-BY 1.0; PDFs: © OIML mirrored for
 
 ```sh
 # Update the submodule (latest relaton data):
-git submodule update --remote relaton-data-oiml
+git submodule update --init --remote relaton-data-oiml
 
 # Re-mirror PDFs from a local relaton-data-oiml checkout:
 scripts/sync-pdfs.sh /path/to/relaton-data-oiml
